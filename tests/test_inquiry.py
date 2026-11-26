@@ -87,7 +87,8 @@ def test_proxy_plans_match_hidden(base):
 
 
 def test_scripted_agent_matches_answers(base, world):
-    """진단 결과대로 Tool을 부르면 정답과 같아야 한다(코드 경로와 정답의 일관성). 상태가 겹치는 #17은 따로 돈다."""
+    """진단 결과대로 Tool을 부르면 정답과 같아야 한다(코드 경로와 정답의 일관성). 상태가 겹치는 #17은 따로 돈다.
+    개선 단계 문의(#21~26)는 소스 근거 없이는 표기 변형도 조치하지 않으므로 전부 조건 미충족이어야 한다."""
     for p in base["posts"]:
         if p["post_id"] == 17:
             continue
@@ -96,6 +97,9 @@ def test_scripted_agent_matches_answers(base, world):
         parsed = parse_pc_field(p["pc_field"], p["body"])
         got = {r["pc_id"]: r["result"] for r in inquiry.result_table(world, board.get_post(world, p["post_id"]), parsed)}
         ans = base["answers"][str(p["post_id"])]
+        if p["post_id"] > 20:
+            assert set(got.values()) == {inquiry.NOT_MET} and not history.rows(world, p["post_id"]), p["post_id"]
+            continue
         assert got == ans["expected"], p["post_id"]
         assert ans["reply_type"] in board.list_notes(world, p["post_id"])[0]["body"].splitlines()[0]
     acted = {pc for a in base["answers"].values() for pc in a["acted_pcs"]}

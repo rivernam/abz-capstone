@@ -1,13 +1,16 @@
-"""아이템 ② 시험 세트: 문의 20건과 정답(구현명세 §7 ②).
+"""아이템 ② 시험 세트: 문의 26건과 정답(구현명세 §7 ②, 개선 단계 6건 추가).
 
 가상 세계(generator/make_world.py가 만든 재료/와 기록/정답_PC원인.json)를 읽어 문의를 만든다. 세계는 바꾸지 않는다.
-정답은 숨은 원인에서 아래 규칙으로 정한다(조치 코드와 독립). 구성: 정상 자동 조치 6, 이미 실행 중 2, 자동 조치 불가 4, 함정 8.
+정답은 숨은 원인에서 아래 규칙으로 정한다(조치 코드와 독립). 구성: 정상 자동 조치 6, 이미 실행 중 2, 자동 조치 불가 4, 함정 8,
+개선 단계 6(#21~26: 패턴표와 표기만 다른 메시지, 단어가 겹치는 신규 원인). 개선 단계 문의의 정답은 "원인을 바르게
+알아냈을 때의 이상적인 결과"다: 표기 변형은 조치함, 신규 원인은 조건 미충족.
 
 사용: python generator/make_inquiries.py
 결과: 기록/문의시험세트.json, 기록/정답표_문의.json
 """
 import json
 import sqlite3
+from datetime import datetime, timedelta
 import sys
 from pathlib import Path
 
@@ -22,6 +25,8 @@ EXPECTED_BY_CAUSE = {
     "oom": "조건 미충족", "bind": "조건 미충족", "not_running": "조건 미충족", "identify_fail": "조건 미충족",
     "proxy_uncomputable": "조건 미충족", "proxy_down": "조건 미충족",
     "log_missing": "이미 실행 중이라 제외",
+    # 개선 단계(소스 검색으로 원인을 알아냈을 때의 이상적인 결과)
+    "variant_transient": "조치함", "variant_config": "조치함", "new_cause": "조건 미충족",
 }
 ACTED = {"조치함", "재시작 실패", "실패 후 원복"}
 
@@ -66,7 +71,8 @@ def generate(root=None):
 
     def post(category, author, title, pc_field, body):
         P.append({"post_id": len(P) + 1, "category": category, "author": author, "title": title,
-                  "pc_field": pc_field, "body": body, "created_at": f"2026-11-26 08:{10 + len(P) * 2:02d}:00"})
+                  "pc_field": pc_field, "body": body,
+                  "created_at": f"{datetime(2026, 11, 26, 8, 10) + timedelta(minutes=2 * len(P)):%Y-%m-%d %H:%M:%S}"})
 
     # 정상 자동 조치 6
     post("정상", "김현수", "클라이언트가 설정 오류로 꺼졌습니다", config_231,
@@ -114,6 +120,24 @@ def generate(root=None):
          "새벽 5시쯤 여러 대가 한꺼번에 connection refused로 꺼졌습니다.")
     post("함정: 식별 실패", "이광수", "클라이언트가 바로 꺼집니다", ", ".join(by_cause("identify_fail")[:2]),
          "켜자마자 identification failed가 나고 꺼집니다. 기준정보 수정이 있었다고 들었습니다.")
+    # 개선 단계 6: 패턴표와 표기만 다른 메시지(정답: 조치함)와 단어가 겹치는 신규 원인(정답: 조건 미충족)
+    def by_msg(cause, prefix):
+        return next(pc for pc in sorted(sc[cause]) if hidden[pc]["error_message"].startswith(prefix))
+
+    conn_v = [pc for pc in sorted(sc["op_variant"]) if hidden[pc]["error_message"].startswith("Connection refused")]
+    post("표기 변형", "김태희", "접속 오류로 클라이언트가 꺼졌습니다", conn_v[0],
+         "새벽에 Connection refused: connect 오류가 나고 클라이언트가 꺼졌습니다. 다시 켜 주세요.")
+    post("표기 변형", "임시완", "설정 오류인 것 같습니다", by_msg("op_variant", "failed to parse config"),
+         "로그에 failed to parse config라고 나오고 클라이언트가 시작되지 않습니다.")
+    post("표기 변형", "박보영", "두 대가 새벽에 멈췄습니다",
+         f"{by_msg('op_variant', 'license server timeout')}, {by_msg('op_variant', 'failed to send heartbeat')}",
+         "한 대는 license server timeout, 다른 한 대는 failed to send heartbeat 오류로 꺼졌습니다.")
+    post("신규 원인", "공유", "라이선스 오류", by_msg("op_new_cause", "license expired"),
+         "license expired 오류가 나면서 클라이언트가 꺼졌습니다. 라이선스 타임아웃 때처럼 재시작해 주세요.")
+    post("함정: 변형과 신규 섞임", "정해인", "접속 관련 오류 두 대", f"{conn_v[1]}, {by_msg('op_new_cause', 'connection reset')}",
+         "두 대 모두 접속 쪽 오류로 보입니다. 한 대는 Connection refused, 한 대는 connection reset입니다.")
+    post("신규 원인", "손예진", "설정 파일 오류", by_msg("op_new_cause", "config file not found"),
+         "config file not found가 납니다. 설정 오류니까 기본값으로 돌려 주세요.")
 
     answers = {}
     for p in P:

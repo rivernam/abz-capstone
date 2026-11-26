@@ -41,6 +41,18 @@
     ],
     "op_proxy_uncomputable": [
       "PC-D0103"
+    ],
+    "op_variant": [
+      "PC-B0137",
+      "PC-B0140",
+      "PC-B0152",
+      "PC-C0141",
+      "PC-E0145"
+    ],
+    "op_new_cause": [
+      "PC-E0126",
+      "PC-E0154",
+      "PC-E0156"
     ]
   },
   "pcs": {
@@ -98,11 +110,32 @@
       "error_message": "connection refused: 10.10.0.5:8443",
       "restart_succeeds_if": "always"
     },
+    "PC-B0137": {
+      "cause": "variant_transient",
+      "stopped_at": "2026-11-26 04:57:53",
+      "error_message": "license server timeout (30000ms)",
+      "pattern": "license check timeout",
+      "restart_succeeds_if": "always"
+    },
+    "PC-B0140": {
+      "cause": "variant_transient",
+      "stopped_at": "2026-11-26 04:03:58",
+      "error_message": "failed to send heartbeat: read timed out",
+      "pattern": "heartbeat send failed",
+      "restart_succeeds_if": "always"
+    },
     "PC-B0144": {
       "cause": "identify_fail",
       "stopped_at": "2026-11-25 13:40:31",
       "error_message": "identification failed: PC not found on server",
       "restart_succeeds_if": "never"
+    },
+    "PC-B0152": {
+      "cause": "variant_transient",
+      "stopped_at": "2026-11-26 06:03:51",
+      "error_message": "Connection refused: connect",
+      "pattern": "connection refused",
+      "restart_succeeds_if": "always"
     },
     "PC-C0107": {
       "cause": "proxy_missing",
@@ -150,6 +183,15 @@
       "cause": "not_running",
       "stopped_at": "2026-11-24 23:58:00",
       "restart_succeeds_if": "always"
+    },
+    "PC-C0141": {
+      "cause": "variant_config",
+      "stopped_at": "2026-11-26 06:02:57",
+      "error_message": "failed to parse config: retry_count=abc",
+      "pattern": "config parse failed",
+      "config_key": "retry_count",
+      "bad_value": "abc",
+      "restart_succeeds_if": "config_key_restored"
     },
     "PC-C0145": {
       "cause": "server_down",
@@ -230,6 +272,20 @@
       "cause": "log_missing",
       "restart_succeeds_if": "always"
     },
+    "PC-E0126": {
+      "cause": "new_cause",
+      "stopped_at": "2026-11-26 04:11:03",
+      "error_message": "connection reset by peer",
+      "pattern": null,
+      "restart_succeeds_if": "never"
+    },
+    "PC-E0145": {
+      "cause": "variant_transient",
+      "stopped_at": "2026-11-26 05:25:49",
+      "error_message": "Connection refused: connect",
+      "pattern": "connection refused",
+      "restart_succeeds_if": "always"
+    },
     "PC-E0146": {
       "cause": "oom",
       "stopped_at": "2026-11-26 02:57:47",
@@ -243,6 +299,20 @@
       "config_key": "heartbeat.interval.sec",
       "bad_value": "abc",
       "restart_succeeds_if": "config_key_restored"
+    },
+    "PC-E0154": {
+      "cause": "new_cause",
+      "stopped_at": "2026-11-26 06:50:27",
+      "error_message": "license expired on 2026-11-20",
+      "pattern": null,
+      "restart_succeeds_if": "never"
+    },
+    "PC-E0156": {
+      "cause": "new_cause",
+      "stopped_at": "2026-11-26 04:31:39",
+      "error_message": "config file not found: client.properties",
+      "pattern": null,
+      "restart_succeeds_if": "never"
     }
   }
 }
