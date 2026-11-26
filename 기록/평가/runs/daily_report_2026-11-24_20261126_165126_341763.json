@@ -1,0 +1,66 @@
+{
+  "report_date": "2026-11-24",
+  "generated_at": "2026-11-26 16:51",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 4303,
+    "output_tokens": 1182
+  },
+  "input_sha256": "a0a50576afe44ad006c6d38f0d2fea55c065aaf9b5faf26eac57169ab005d830",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": true,
+        "cause": "클라이언트 2.4.2 버전 설정 파일의 log_level 값(TRACE2)이 허용되지 않아 설정 파싱이 실패한 것으로 보인다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": false,
+        "cause": "C1과 같은 사건을 오류 유형 기준으로 잡은 후보이므로 중복이다. 원인을 더 직접 설명하는 C1만 의미 있는 묶음으로 본다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "정상 PC 비율은 97.0%(291/300대)이고, 이상 PC는 9대로 전일 33대에서 줄었다. 의미 있는 묶음은 클라이언트 2.4.2 버전의 설정 오류(log_level 값 TRACE2)이며, 같은 사건의 중복 후보는 제외했다. 식별 실패가 3건 있고, 확인 필요 PC는 0대다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "pattern:config parse failed",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": true,
+      "cause": "클라이언트 2.4.2 버전 설정 파일의 log_level 값(TRACE2)이 허용되지 않아 설정 파싱이 실패한 것으로 보인다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C1과 같은 사건을 오류 유형 기준으로 잡은 후보이므로 중복이다. 원인을 더 직접 설명하는 C1만 의미 있는 묶음으로 본다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}
