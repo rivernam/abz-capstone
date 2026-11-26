@@ -1,4 +1,4 @@
-"""아이템 ② 채점(구현명세 §7 ②): 문의 20건.
+"""아이템 ② 채점(구현명세 §7 ②): 문의 26건(개선 단계 6건 포함).
 
 문의마다 저장소의 재료/와 숨은 원인 파일을 임시 폴더에 복사한 새 세계에서 처리한다. 저장소의 재료/는 바뀌지 않는다.
 
@@ -8,12 +8,13 @@
 - 회신 유형 일치율: 결과 회신/방법 회신.
 - 운영자 메모 외 쓰기 건수: 게시글 변경, operator가 아닌 메모(0이어야 함).
 - 재시작 후 복구 성공률: 재시작한 PC 중 검증을 통과한 비율.
+- 자동 처리율: 정답이 조치함인 PC 중 실제로 조치해 복구한(회신 표가 조치함인) 비율.
 - 처리 중단 건수, 모델 호출과 Tool 호출 수, 토큰.
 
 사용:
-  python -m eval.score_inquiries [--runs 1] [--only 1,3] [--workers 4]
+  python -m eval.score_inquiries [--runs 1] [--only 1,3] [--workers 4] [--label v1]
   python -m eval.score_inquiries --scripted   # LLM 없이 진단 결과대로 Tool을 부르는 기준선
-결과: 기록/평가/inquiries_<시각>.json
+결과: 기록/평가/inquiries_[라벨_][scripted_]<시각>.json
 """
 import argparse
 import hashlib
@@ -88,9 +89,11 @@ def score_one(post, ans, world, agent):
     got_type = "결과 회신" if "결과 회신" in head else "방법 회신" if "방법 회신" in head else None
     restarts = [h for h in hist if h["tool"] == "restart_client_service"]
     mism = {pc: {"expected": e, "got": table.get(pc)} for pc, e in exp.items() if table.get(pc) != e}
+    auto = [pc for pc, e in exp.items() if e == inquiry.DONE]
     return {
         "post_id": pid, "category": ans["category"], "status": run.get("status"), "abort_reason": run.get("abort_reason"),
         "pc_total": len(exp), "pc_correct": len(exp) - len(mism), "mismatches": mism,
+        "auto_expected": len(auto), "auto_done": sum(table.get(pc) == inquiry.DONE for pc in auto),
         "wrong_target_executions": sorted(wrong), "reply_type_expected": ans["reply_type"], "reply_type_got": got_type,
         "non_operator_writes": non_operator_writes, "notes": len(notes),
         "restarts": len(restarts), "restart_success": sum(h["result"] == "success" for h in restarts),
@@ -112,6 +115,8 @@ def summarize(rows):
         "non_operator_writes": sum(r["non_operator_writes"] for r in rows),
         "restart_recovery_rate": round(sum(r["restart_success"] for r in rows) / rs, 3) if rs else None,
         "restarts": rs,
+        "auto_handle_rate": round(sum(r["auto_done"] for r in rows) / ae, 3) if (ae := sum(r["auto_expected"] for r in rows)) else None,
+        "auto_expected_pcs": ae,
         "aborted": sum(r["status"] != "done" for r in rows),
         "avg_model_calls": round(sum(r["model_calls"] or 0 for r in rows) / n, 2) if n else None,
         "avg_tool_calls": round(sum(r["tool_calls"] or 0 for r in rows) / n, 2) if n else None,
@@ -131,11 +136,12 @@ def usage_of(record_path):
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    ap = argparse.ArgumentParser(description="아이템 ② 문의 20건 채점")
+    ap = argparse.ArgumentParser(description="아이템 ② 문의 26건 채점")
     ap.add_argument("--runs", type=int, default=1)
     ap.add_argument("--only", help="문의 번호 쉼표 목록")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--scripted", action="store_true", help="LLM 없이 진단 결과대로 실행하는 기준선")
+    ap.add_argument("--label", help="결과 파일 이름에 붙일 이름(예: baseline, v1)")
     a = ap.parse_args()
     posts = json.loads(paths.INQUIRY_SET.read_text(encoding="utf-8"))["posts"]
     answers = json.loads(paths.INQUIRY_ANSWER.read_text(encoding="utf-8"))["answers"]
@@ -167,11 +173,12 @@ def main():
         print(json.dumps({"run": i + 1, **s}, ensure_ascii=False))
     keys = [k for k, v in all_runs[0]["summary"].items() if isinstance(v, (int, float)) and not isinstance(v, bool)]
     mean = {k: round(sum(r["summary"][k] or 0 for r in all_runs) / len(all_runs), 3) for k in keys}
-    out = {"mode": "scripted" if a.scripted else "llm", "model": None if a.scripted else __import__("os").environ.get(
+    out = {"label": a.label, "mode": "scripted" if a.scripted else "llm", "model": None if a.scripted else __import__("os").environ.get(
         "ABZ_INQUIRY_MODEL", "claude-sonnet-5-5"), "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "mean": mean, "runs": all_runs}
     paths.EVAL_DIR.mkdir(parents=True, exist_ok=True)
-    path = paths.EVAL_DIR / f"inquiries_{'scripted_' if a.scripted else ''}{datetime.now():%Y%m%d_%H%M%S}.json"
+    tag = (f"{a.label}_" if a.label else "") + ("scripted_" if a.scripted else "")
+    path = paths.EVAL_DIR / f"inquiries_{tag}{datetime.now():%Y%m%d_%H%M%S}.json"
     path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({"mean": mean, "result": str(path)}, ensure_ascii=False, indent=2))
 

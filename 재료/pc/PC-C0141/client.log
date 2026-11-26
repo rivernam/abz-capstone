@@ -1,1 +1,4 @@
 2026-11-20 08:00:00 INFO client started version=2.4.2
+2026-11-26 06:02:57 INFO client stopped
+2026-11-26 06:03:27 ERROR failed to parse config: retry_count=abc
+2026-11-26 06:03:28 INFO client stopped (fatal)

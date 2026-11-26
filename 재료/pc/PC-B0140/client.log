@@ -1,1 +1,4 @@
 2026-11-20 08:00:00 INFO client started version=2.4.2
+2026-11-26 04:03:58 ERROR failed to send heartbeat: read timed out
+2026-11-26 04:04:28 ERROR failed to send heartbeat: read timed out
+2026-11-26 04:04:29 INFO client stopped (fatal)

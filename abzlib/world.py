@@ -31,3 +31,4 @@ class World:
     history_db = property(lambda s: s._p(paths.ACTION_HISTORY))
     hidden_path = property(lambda s: s._p(paths.HIDDEN_CAUSES))
     runs_dir = property(lambda s: s._p(paths.RUNS_DIR))
+    source_dir = property(lambda s: s._p(paths.SOURCE_DIR))

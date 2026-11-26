@@ -1,1 +1,4 @@
 2026-11-20 08:00:00 INFO client started version=2.4.2
+2026-11-26 06:50:27 ERROR license expired on 2026-11-20
+2026-11-26 06:50:57 ERROR license expired on 2026-11-20
+2026-11-26 06:50:58 INFO client stopped (fatal)

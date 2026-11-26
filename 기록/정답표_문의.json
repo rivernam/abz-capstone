@@ -245,6 +245,71 @@
       "reply_type": "방법 회신",
       "acted_pcs": [],
       "body_only_pcs": []
+    },
+    "21": {
+      "category": "표기 변형",
+      "expected": {
+        "PC-B0152": "조치함"
+      },
+      "reply_type": "결과 회신",
+      "acted_pcs": [
+        "PC-B0152"
+      ],
+      "body_only_pcs": []
+    },
+    "22": {
+      "category": "표기 변형",
+      "expected": {
+        "PC-C0141": "조치함"
+      },
+      "reply_type": "결과 회신",
+      "acted_pcs": [
+        "PC-C0141"
+      ],
+      "body_only_pcs": []
+    },
+    "23": {
+      "category": "표기 변형",
+      "expected": {
+        "PC-B0137": "조치함",
+        "PC-B0140": "조치함"
+      },
+      "reply_type": "결과 회신",
+      "acted_pcs": [
+        "PC-B0137",
+        "PC-B0140"
+      ],
+      "body_only_pcs": []
+    },
+    "24": {
+      "category": "신규 원인",
+      "expected": {
+        "PC-E0154": "조건 미충족"
+      },
+      "reply_type": "방법 회신",
+      "acted_pcs": [],
+      "body_only_pcs": []
+    },
+    "25": {
+      "category": "함정: 변형과 신규 섞임",
+      "expected": {
+        "PC-E0145": "조치함",
+        "PC-E0126": "조건 미충족"
+      },
+      "reply_type": "결과 회신",
+      "acted_pcs": [
+        "PC-E0145"
+      ],
+      "body_only_pcs": []
+    },
+    "26": {
+      "category": "신규 원인",
+      "expected": {
+        "PC-E0156": "조건 미충족"
+      },
+      "reply_type": "방법 회신",
+      "acted_pcs": [],
+      "body_only_pcs": []
     }
   }
 }

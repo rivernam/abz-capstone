@@ -441,6 +441,51 @@ def generate(root=None):
     ]
     clusters_by_day[D25]["coincidental"].append({"pcs": sorted(sc["cluster_coincidental"]), "shared": "process=TEST"})
 
+    # ---- 5-2. 아이템 ② 개선 단계 시나리오: 표기 변형과 신규 원인 (11-26 새벽에 멈춤) ----
+    # 기존 출력이 바뀌지 않게 별도 난수(SEED + 2)를 쓰고, 기존 take()가 모두 끝난 뒤의 pool에서 고른다.
+    # 아무 사건도 없는 직접 접속 PC만 고르므로 11-25 이전 로그와 프록시 그룹 계산은 그대로다.
+    # 서버 로그 jitter용 rng 호출 수는 정지 여부와 관계없이 슬롯마다 한 번이라 바뀌지 않는다.
+    rng2 = random.Random(SEED + 2)
+    # 각 공정 앞 25대(0101~0125)는 피한다: 기존 문의 시험 세트의 범위 문의(C0101~C0125)와 "실행 중 PC" 문의가 이 구간을 쓴다.
+    quiet = [pc for pc in pool if int(pc[4:]) > 125 and direct(pc) and pc not in hidden and plans[pc]["cut"] is None
+             and not any(plans[pc][k] for k in ("skip", "extra", "client", "fails"))]
+    rng2.shuffle(quiet)
+
+    def take2(n, pred=lambda pc: True):
+        out = [pc for pc in quiet if pred(pc)][:n]
+        if len(out) < n:
+            raise RuntimeError("개선 단계 시나리오 PC가 모자란다")
+        for pc in out:
+            quiet.remove(pc)
+            pool.remove(pc)
+        return out
+
+    def at26b():
+        return t(D26, rng2.randint(1, 6), rng2.randint(0, 59), rng2.randint(0, 59))
+
+    # 표기 변형(정답: 패턴표의 그 패턴). 재시작하면 복구되는 원인이다.
+    variant_restart = [("Connection refused: connect", False), ("Connection refused: connect", False),
+                       ("license server timeout (30000ms)", True), ("failed to send heartbeat: read timed out", True)]
+    sc["op_variant"] = []
+    for (msg, reached), pc in zip(variant_restart, take2(len(variant_restart))):
+        stop_with(pc, at26b(), "variant_transient", server_msg=msg if reached else None, client_msg=None if reached else msg,
+                  pattern={**VARIANT_MESSAGES, **VARIANT_MESSAGES_2}[msg], restart_succeeds_if="always")
+        sc["op_variant"].append(pc)
+    # 표기 변형 config: 메시지의 키가 기본값이 아니어서 기본값 복구가 필요하다(2.4.x 밑줄 표기 키).
+    cfg_msg = "failed to parse config: retry_count=abc"
+    pc = take2(1, lambda pc: by_pc[pc]["client_version"] != "2.3.1")[0]
+    config_override[pc] = ("retry_count", "abc")
+    stop_with(pc, at26b(), "variant_config", client_msg=cfg_msg, pattern=VARIANT_MESSAGES[cfg_msg],
+              config_key="retry_count", bad_value="abc", restart_succeeds_if="config_key_restored")
+    sc["op_variant"].append(pc)
+    # 신규 원인: 패턴표 단어와 겹치지만 패턴표의 어느 것에도 대응하지 않는다. 재시작해도 다시 실패한다.
+    sc["op_new_cause"] = []
+    for (msg, reached), pc in zip([("license expired on 2026-11-20", True), ("connection reset by peer", False),
+                                   ("config file not found: client.properties", False)], take2(3)):
+        stop_with(pc, at26b(), "new_cause", server_msg=msg if reached else None, client_msg=None if reached else msg,
+                  pattern=None, restart_succeeds_if="never")
+        sc["op_new_cause"].append(pc)
+
     # ---- 6. 서버 실행 로그 ----
     conn_addr = {pc: real_ip[route[pc]] for pc in by_pc}
     reported_internal = {pc: (by_pc[pc]["phys_internal"] if pc in has_pattern else "-") for pc in by_pc}

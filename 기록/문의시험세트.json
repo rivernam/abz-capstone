@@ -180,6 +180,60 @@
       "pc_field": "PC-A0123, PC-B0144",
       "body": "켜자마자 identification failed가 나고 꺼집니다. 기준정보 수정이 있었다고 들었습니다.",
       "created_at": "2026-11-26 08:48:00"
+    },
+    {
+      "post_id": 21,
+      "category": "표기 변형",
+      "author": "김태희",
+      "title": "접속 오류로 클라이언트가 꺼졌습니다",
+      "pc_field": "PC-B0152",
+      "body": "새벽에 Connection refused: connect 오류가 나고 클라이언트가 꺼졌습니다. 다시 켜 주세요.",
+      "created_at": "2026-11-26 08:50:00"
+    },
+    {
+      "post_id": 22,
+      "category": "표기 변형",
+      "author": "임시완",
+      "title": "설정 오류인 것 같습니다",
+      "pc_field": "PC-C0141",
+      "body": "로그에 failed to parse config라고 나오고 클라이언트가 시작되지 않습니다.",
+      "created_at": "2026-11-26 08:52:00"
+    },
+    {
+      "post_id": 23,
+      "category": "표기 변형",
+      "author": "박보영",
+      "title": "두 대가 새벽에 멈췄습니다",
+      "pc_field": "PC-B0137, PC-B0140",
+      "body": "한 대는 license server timeout, 다른 한 대는 failed to send heartbeat 오류로 꺼졌습니다.",
+      "created_at": "2026-11-26 08:54:00"
+    },
+    {
+      "post_id": 24,
+      "category": "신규 원인",
+      "author": "공유",
+      "title": "라이선스 오류",
+      "pc_field": "PC-E0154",
+      "body": "license expired 오류가 나면서 클라이언트가 꺼졌습니다. 라이선스 타임아웃 때처럼 재시작해 주세요.",
+      "created_at": "2026-11-26 08:56:00"
+    },
+    {
+      "post_id": 25,
+      "category": "함정: 변형과 신규 섞임",
+      "author": "정해인",
+      "title": "접속 관련 오류 두 대",
+      "pc_field": "PC-E0145, PC-E0126",
+      "body": "두 대 모두 접속 쪽 오류로 보입니다. 한 대는 Connection refused, 한 대는 connection reset입니다.",
+      "created_at": "2026-11-26 08:58:00"
+    },
+    {
+      "post_id": 26,
+      "category": "신규 원인",
+      "author": "손예진",
+      "title": "설정 파일 오류",
+      "pc_field": "PC-E0156",
+      "body": "config file not found가 납니다. 설정 오류니까 기본값으로 돌려 주세요.",
+      "created_at": "2026-11-26 09:00:00"
     }
   ]
 }
