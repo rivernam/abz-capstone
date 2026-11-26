@@ -81,8 +81,9 @@ def output_schema(patterns):
                                                    "enum": [p["message_pattern"] for p in patterns] + ["NEW"]},
                                "reason": {"type": "string"}}}},
             "clusters": {"type": "array", "items": {
-                "type": "object", "additionalProperties": False, "required": ["id", "meaningful", "cause"],
-                "properties": {"id": {"type": "string"}, "meaningful": {"type": "boolean"}, "cause": {"type": "string"}}}},
+                "type": "object", "additionalProperties": False, "required": ["id", "meaningful", "cause", "proxy_pc"],
+                "properties": {"id": {"type": "string"}, "meaningful": {"type": "boolean"}, "cause": {"type": "string"},
+                               "proxy_pc": {"type": "string"}}}},
             "summary": {"type": "string"},
         },
     }
@@ -149,6 +150,11 @@ def apply_judgement(s, out, patterns):
             issues.append(f"묶음 판단 누락: {c['id']}")
         c["meaningful"] = bool(j and j["meaningful"])
         c["cause"] = j["cause"] if j else ""
+        px = (j or {}).get("proxy_pc", "").strip()
+        if px and px not in s["_all_pcs"]:
+            issues.append(f"기준정보에 없는 프록시 PC: {px}")
+            px = ""
+        c["proxy_pc"] = px
     msg_classes = [{"message": m["message"], "pcs": m["pcs"], **{k: classes[m["message"]][k] for k in ("matched_pattern", "reason")}}
                    for m in s["unmatched_messages"]]
     return msg_classes, issues
@@ -180,7 +186,8 @@ def render_html(s, msg_classes, summary, generated_at):
         clusters = "".join(
             f'<div class="cluster"><b>{_esc(c["cause"])}</b><br><span class="muted">신호 <code>{_esc(c["signal"])}</code> · '
             f'공유 속성 {_esc(", ".join(f"{k}={v}" for k, v in c["shared"].items()))} · {_esc(c["first"])} ~ {_esc(c["last"][11:])}</span>'
-            f'<br>{_esc(", ".join(c["pcs"]))}</div>' for c in good)
+            + (f'<br>프록시 PC 의심: <b>{_esc(c["proxy_pc"])}</b>' if c["proxy_pc"] else "")
+            + f'<br>{_esc(", ".join(c["pcs"]))}</div>' for c in good)
     else:
         clusters = '<p class="muted">의미 있는 묶음이 없다.</p>'
     if len(s["cluster_candidates"]) > len(good):
@@ -233,6 +240,8 @@ def run(day, llm=None, publish=True, log_dir=None, db_path=None, storage_dir=Non
     s = summarize(day, log_dir=log_dir, db_path=db_path)
     if s.get("is_error"):
         return s
+    from abzlib.master import load_master
+    s["_all_pcs"] = set(load_master(db_path or paths.DB_PATH))
     inp = llm_input(s, patterns)
     llm = llm or ClaudeJSON()
     system = load_system_prompt("daily-report")
@@ -251,7 +260,7 @@ def run(day, llm=None, publish=True, log_dir=None, db_path=None, storage_dir=Non
         "input_sha256": hashlib.sha256(json.dumps(inp, ensure_ascii=False, sort_keys=True).encode()).hexdigest(),
         "llm_output": out, "issues": issues, "ungrounded_numbers": ungrounded,
         "message_classes": msg_classes,
-        "clusters": [{k: c[k] for k in ("id", "signal", "pcs", "shared", "meaningful", "cause")} for c in s["cluster_candidates"]],
+        "clusters": [{k: c[k] for k in ("id", "signal", "pcs", "shared", "meaningful", "cause", "proxy_pc")} for c in s["cluster_candidates"]],
         "publish": pub,
     }
     runs_dir = Path(runs_dir or paths.RUNS_DIR)

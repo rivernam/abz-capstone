@@ -75,7 +75,7 @@ def test_identification_is_consistent(world):
     """서버는 (접속 주소, 설비망 IP)로 기준정보에서 PC를 찾는다. 기준정보 수정(11-24 23:30) 이후 로그로 확인."""
     key = {(r["ip"], r["internal_ip"] or "-"): pc for pc, r in world["db"].items()}
     fails = set()
-    for d in ("2026-11-25", "2026-11-26"):
+    for d in ("2026-11-25", "2026-11-26"):                     # 수정 이후만 현재 기준정보와 맞는다
         for r in world["logs"][d]:
             if r[2] == "IDENTIFY_FAIL":
                 assert (r[4], r[5]) not in key
@@ -138,7 +138,8 @@ def anomalies(db, logs, day):
 
 
 def test_anomalies_match_answer(world):
-    assert anomalies(world["db"], world["logs"], D25) == world["ans"]["anomalies"][D25]
+    for day in world["ans"]["report_dates"]:
+        assert anomalies(world["db"], world["logs"], day) == world["ans"]["anomalies"][day], day
 
 
 def test_planned_restart_is_not_anomaly(world):
@@ -150,7 +151,7 @@ def test_error_classification(world):
     pats = [r["message_pattern"] for r in csv.DictReader(
         open(world["root"] / "재료" / "문서" / "오류메시지패턴표.csv", encoding="utf-8"))]
     cls = world["ans"]["error_classification"]
-    assert sum(v == "NEW" for v in cls.values()) == 2 and len(cls) == 6
+    assert sum(v == "NEW" for v in cls.values()) == 5 and len(cls) == 12
     for msg, exp in cls.items():
         assert not any(msg.startswith(p) for p in pats)
         assert exp == "NEW" or exp in pats

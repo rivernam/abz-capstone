@@ -1,1 +1,2 @@
 2026-11-20 08:00:00 INFO client started version=2.4.2
+2026-11-22 09:10:07 ERROR bind failed: port 8443 already in use

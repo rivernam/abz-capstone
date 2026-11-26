@@ -1,1 +1,2 @@
 2026-11-20 08:00:00 INFO client started version=2.4.2
+2026-11-24 08:34:50 ERROR config parse failed: key=log_level value=TRACE2

@@ -22,10 +22,11 @@ MODELS = {"ETCH": ["ET-300", "ET-500"], "CLEAN": ["CL-200", "CL-400"], "DEPO": [
           "LITHO": ["LT-700", "LT-900"], "TEST": ["TS-110", "TS-210"]}
 PER_PROCESS = 60
 VERSIONS = ["2.3.1", "2.4.0", "2.4.2"]
-START = datetime(2026, 11, 24, 0, 0, 0)
+START = datetime(2026, 11, 20, 0, 0, 0)        # 리포트 날짜 11-21~11-25의 전날부터
 END = datetime(2026, 11, 26, 8, 0, 0)          # 리포트 시각(오전 8시) 직전까지
 SLOT = timedelta(minutes=10)                   # 정상 신호 간격
-D24, D25, D26 = "2026-11-24", "2026-11-25", "2026-11-26"
+D21, D22, D23, D24, D25, D26 = (f"2026-11-{d}" for d in range(21, 27))
+REPORT_DAYS = [D21, D22, D23, D24, D25]
 SERVER_HOST, SERVER_PORT, PROXY_PORT = "10.10.0.5", 8443, 3128
 
 # 설비망을 쓰는 (공정, 설비 모델) 조합과 프록시 구성 방식
@@ -65,6 +66,13 @@ VARIANT_MESSAGES = {
     "license server timeout (30000ms)": "license check timeout",
 }
 NEW_MESSAGES = ["SSL handshake failed: certificate expired", "disk full: cannot write spool file"]
+# 11-21 함정: 표기가 크게 다른 변형과, 패턴표 단어와 겹치지만 원인이 다른 메시지
+VARIANT_MESSAGES_2 = {
+    "Address already in use: bind": "bind failed",
+    "config file parse error at line 12": "config parse failed",
+    "failed to send heartbeat: read timed out": "heartbeat send failed",
+}
+NEW_MESSAGES_2 = ["license expired on 2026-11-20", "connection reset by peer", "config file not found: client.properties"]
 
 
 def key_name(version, key):
@@ -210,7 +218,7 @@ def generate(root=None):
     orphans = [{"label": "UNREGISTERED-1", "ip": "10.22.9.99", "internal": None, "client_version": "2.4.0"}]
 
     # ---- 4. 사건 계획 ----
-    cats = {D24: {}, D25: {}}
+    cats = {d: {} for d in REPORT_DAYS}
 
     def mark(day, pc, cat):
         cats[day].setdefault(pc, set()).add(cat)
@@ -272,6 +280,64 @@ def generate(root=None):
                                       [STD_MESSAGES["java.lang.OutOfMemoryError"], STD_MESSAGES["bind failed"],
                                        STD_MESSAGES["heartbeat send failed"]])):
         err(pc, t(D25, 14, 5, 12) + timedelta(minutes=35 * k), msg, D25)
+
+    # ---- 4-2. 리포트 날짜 11-21~11-24 시나리오(일일 리포트 시험 세트) ----
+    clusters_by_day = {d: {"true": [], "coincidental": []} for d in REPORT_DAYS}
+    for d in (D21, D22, D23):                              # 날마다 조금씩 생기는 일반 이상
+        for pc in take(2):
+            s = t(d, rng.randint(6, 17), 0)
+            plans[pc]["skip"].append((s, s + timedelta(hours=rng.randint(1, 3))))
+            mark(d, pc, "heartbeat_gap")
+        pc = take(1)[0]
+        base = t(d, rng.randint(8, 16), 5)
+        for n in range(rng.randint(5, 7)):
+            plans[pc]["extra"] += [(base + timedelta(minutes=9 * n), "STOP", ""),
+                                   (base + timedelta(minutes=9 * n + 1), "START", "")]
+        mark(d, pc, "restart_loop")
+        for pc, p in zip(take(2), rng.sample(["java.lang.OutOfMemoryError", "license check timeout", "heartbeat send failed"], 2)):
+            err(pc, t(d, rng.randint(6, 21), rng.randint(0, 59), rng.randint(0, 59)), STD_MESSAGES[p], d)
+
+    # 11-21: 처음 보는 오류 메시지(어려운 변형과 단어가 겹치는 신규)
+    odd2 = list(VARIANT_MESSAGES_2) + NEW_MESSAGES_2
+    for k, (pc, msg) in enumerate(zip(take(len(odd2)), odd2)):
+        err(pc, t(D21, 7 + 2 * k, rng.randint(0, 59), rng.randint(0, 59)), msg, D21)
+
+    # 11-22: 진짜 묶음(같은 프록시 그룹의 heartbeat 전송 실패)과 우연 묶음(각 PC의 포트 충돌)
+    hb_group = take(4, lambda pc: proxy_of.get(pc) == split_major and pc != split_major)
+    for k, pc in enumerate(hb_group):
+        err(pc, t(D22, 13, 5, rng.randint(0, 59)) + timedelta(minutes=10 * k), STD_MESSAGES["heartbeat send failed"], D22)
+    clusters_by_day[D22]["true"].append({"pcs": sorted(hb_group), "pattern": "heartbeat send failed",
+                                         "shared": f"shared_intranet_ip={real_ip[split_major]}"})
+    bind_group = take(3, lambda pc: direct(pc) and by_pc[pc]["process"] == "CLEAN")
+    for k, pc in enumerate(bind_group):
+        err(pc, t(D22, 9, 10, 7) + timedelta(minutes=45 * k), STD_MESSAGES["bind failed"], D22)
+    clusters_by_day[D22]["coincidental"].append({"pcs": sorted(bind_group), "shared": "process=CLEAN",
+                                                 "why": "포트 충돌은 PC마다의 문제"})
+
+    # 11-23: 자기 자신을 거치는 프록시 PC 장애. 같은 공정의 다른 PC 하나가 같은 시간대에 따로 끊긴다(미끼).
+    self_px = combos[self_combo]["proxies"][0]
+    self_members = sorted(pc for pc, px in proxy_of.items() if px == self_px and pc != self_px)
+    o_a, o_b = t(D23, 10, 0), t(D23, 10, 50)
+    self_addr = f"{by_pc[self_px]['phys_internal']}:{PROXY_PORT}"
+    for pc in [self_px] + self_members:
+        plans[pc]["skip"].append((o_a, o_b))
+        mark(D23, pc, "heartbeat_gap")
+    for pc in self_members:
+        err(pc, o_a + timedelta(minutes=1, seconds=rng.randint(0, 200)), f"connection refused: {self_addr}", D23)
+    decoy = take(1, lambda pc: direct(pc) and by_pc[pc]["process"] == "ETCH")[0]
+    plans[decoy]["skip"].append((t(D23, 9, 55), t(D23, 11, 5)))
+    mark(D23, decoy, "heartbeat_gap")
+    clusters_by_day[D23]["true"].append({"pcs": self_members, "pattern": "connection refused",
+                                         "shared": f"shared_intranet_ip={real_ip[self_px]}", "proxy_pc": self_px})
+    sc["decoy_gap_d23"] = [decoy]
+
+    # 11-24: 배포 후 같은 버전에서 같은 설정 오류
+    cfg_group = take(4, lambda pc: direct(pc) and by_pc[pc]["client_version"] == "2.4.2")
+    for k, pc in enumerate(cfg_group):
+        err(pc, t(D24, 8, 10, rng.randint(0, 59)) + timedelta(minutes=12 * k),
+            STD_MESSAGES["config parse failed"].format(key="log_level", value="TRACE2"), D24)
+    clusters_by_day[D24]["true"].append({"pcs": sorted(cfg_group), "pattern": "config parse failed",
+                                         "shared": "client_version=2.4.2"})
 
     # ---- 5. 아이템 ② 현재 상태 시나리오 (11-26 새벽에 멈춤) ----
     hidden = {}
@@ -351,6 +417,7 @@ def generate(root=None):
     edit_at = t(D24, 23, 30)
     fail_tries = [edit_at + timedelta(minutes=1), t(D25, 8, 10, 4), t(D25, 13, 40, 31)]
     identify_fail = []
+    fail_days = sorted({f"{x:%Y-%m-%d}" for x in fail_tries})
     for pc in sc["identify_intranet_typo"] + sc["identify_facility_typo"]:
         plans[pc]["cut"] = edit_at
         plans[pc]["extra"].append((edit_at, "STOP", ""))
@@ -366,6 +433,13 @@ def generate(root=None):
         intranet_typo[pc] = typo(by_pc[pc]["ip"])
     for pc in sc["identify_facility_typo"]:
         facility_typo[pc] = typo(by_pc[pc]["internal_ip"])
+
+    clusters_by_day[D25]["true"] += [
+        {"pcs": sorted(sc["cluster_license"]), "pattern": "license check timeout", "shared": "client_version=2.3.1"},
+        {"pcs": sorted(split_minor), "pattern": "connection refused", "shared": "proxy_pc=" + split_minor_px,
+         "proxy_pc": split_minor_px},
+    ]
+    clusters_by_day[D25]["coincidental"].append({"pcs": sorted(sc["cluster_coincidental"]), "shared": "process=TEST"})
 
     # ---- 6. 서버 실행 로그 ----
     conn_addr = {pc: real_ip[route[pc]] for pc in by_pc}
@@ -459,14 +533,15 @@ def generate(root=None):
         # 설비망 IP가 있으면 그것으로 기존 PC를 특정할 수 있지만, 없으면 미등록과 구별할 수 없다.
         expected = "intranet_ip_typo" if reported_internal[pc] != "-" else "not_in_master"
         identify_fail.append({"conn": conn_addr[pc], "internal": reported_internal[pc], "expected": expected,
-                              "pc_id": pc, "db_ip": v})
+                              "pc_id": pc, "db_ip": v, "days": fail_days})
         by_pc[pc]["ip"] = v
     for pc, v in facility_typo.items():
         identify_fail.append({"conn": conn_addr[pc], "internal": reported_internal[pc], "expected": "facility_ip_typo",
-                              "pc_id": pc, "db_internal_ip": v})
+                              "pc_id": pc, "db_internal_ip": v, "days": fail_days})
         by_pc[pc]["internal_ip"] = v
     for o in orphans:
-        identify_fail.append({"conn": o["ip"], "internal": o["internal"] or "-", "expected": "not_in_master", "pc_id": None})
+        identify_fail.append({"conn": o["ip"], "internal": o["internal"] or "-", "expected": "not_in_master", "pc_id": None,
+                              "days": [D25, D26]})
     db_dir = material / "db"
     db_dir.mkdir(parents=True, exist_ok=True)
     db_path = db_dir / "기준정보.sqlite"
@@ -502,21 +577,14 @@ def generate(root=None):
     for _, _, text in lines:
         parts = text.split(" | ")
         if parts[2] == "ERROR" and parts[0] < D26 and not parts[6].startswith(tuple(p for p, *_ in PATTERNS)):
-            seen[parts[6]] = VARIANT_MESSAGES.get(parts[6], "NEW")
+            seen[parts[6]] = {**VARIANT_MESSAGES, **VARIANT_MESSAGES_2}.get(parts[6], "NEW")
     answer = {
-        "seed": SEED, "report_date": D25, "total_pcs_in_db": len(pcs),
+        "seed": SEED, "report_date": D25, "report_dates": REPORT_DAYS, "total_pcs_in_db": len(pcs),
         "anomalies": {d: {pc: sorted(c) for pc, c in sorted(m.items())} for d, m in cats.items()},
         "scenarios": {k: sorted(v) for k, v in sc.items() if not k.startswith("op_")},
         "identify_fail": identify_fail,
         "error_classification": dict(sorted(seen.items())),
-        "clusters": {
-            "true": [
-                {"pcs": sorted(sc["cluster_license"]), "pattern": "license check timeout", "shared": "client_version=2.3.1"},
-                {"pcs": sorted(split_minor), "pattern": "connection refused", "shared": "proxy_pc=" + split_minor_px,
-                 "proxy_pc": split_minor_px},
-            ],
-            "coincidental": [{"pcs": sorted(sc["cluster_coincidental"]), "shared": "process=TEST"}],
-        },
+        "clusters": clusters_by_day,
         "proxy": {"port": PROXY_PORT, "combos": combos},
         "rules": {"heartbeat_gap_minutes": 30, "restart_loop_start_count": 5,
                   "gap_belongs_to_date_of_earlier_heartbeat": True,

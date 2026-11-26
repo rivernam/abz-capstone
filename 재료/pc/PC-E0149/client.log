@@ -1,4 +1,4 @@
 2026-11-20 08:00:00 INFO client started version=2.3.1
-2026-11-26 05:13:47 INFO client stopped
-2026-11-26 05:14:17 ERROR config parse failed: key=heartbeat.interval.sec value=abc
-2026-11-26 05:14:18 INFO client stopped (fatal)
+2026-11-26 04:42:23 INFO client stopped
+2026-11-26 04:42:53 ERROR config parse failed: key=heartbeat.interval.sec value=abc
+2026-11-26 04:42:54 INFO client stopped (fatal)

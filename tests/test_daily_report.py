@@ -39,14 +39,15 @@ class PerfectLLM:
     def call(self, system, user, schema):
         assert "일일 리포트" in system
         inp = json.loads(user)
-        true_sets = [c["pcs"] for c in self.ans["clusters"]["true"]]
+        truth = self.ans["clusters"][inp["facts"]["report_date"]]["true"]
         clusters, used = [], set()
         for c in inp["cluster_candidates"]:
             pcs = [p["pc_id"] for p in c["pcs"]]
-            hit = next((i for i, t in enumerate(true_sets) if jaccard(t, pcs) >= 0.5 and i not in used), None)
+            hit = next((i for i, t in enumerate(truth) if jaccard(t["pcs"], pcs) >= 0.5 and i not in used), None)
             if hit is not None:
                 used.add(hit)
-            clusters.append({"id": c["id"], "meaningful": hit is not None, "cause": "원인"})
+            clusters.append({"id": c["id"], "meaningful": hit is not None, "cause": "원인",
+                             "proxy_pc": truth[hit].get("proxy_pc") or "" if hit is not None else ""})
         f = inp["facts"]
         return {"message_classes": [{"message": m, "matched_pattern": self.ans["error_classification"][m], "reason": "r"}
                                     for m in inp["unmatched_messages"]],
@@ -64,14 +65,19 @@ def test_summary_matches_answer(world, summary):
     assert got == world["ans"]["anomalies"][DAY]
     assert summary["totals"]["registered"] == 300
     assert sum(p["registered"] for p in summary["by_process"].values()) == 300
-    assert {m["message"] for m in summary["unmatched_messages"]} == set(world["ans"]["error_classification"])
     reasons = {(f["conn"], f["internal"] or "-"): f["reason"] for f in summary["identify_fail"]}
-    assert reasons == {(f["conn"], f["internal"]): f["expected"] for f in world["ans"]["identify_fail"]}
+    assert reasons == {(f["conn"], f["internal"]): f["expected"] for f in world["ans"]["identify_fail"] if DAY in f["days"]}
 
 
-def test_true_clusters_are_candidates(world, summary):
-    for t in world["ans"]["clusters"]["true"] + world["ans"]["clusters"]["coincidental"]:
-        assert any(jaccard(t["pcs"], c["pcs"]) >= 0.5 for c in summary["cluster_candidates"]), t
+def test_every_report_day_matches_answer(world):
+    for day in world["ans"]["report_dates"]:
+        s = summarize(day, log_dir=world["log"], db_path=world["db"])
+        assert {r["pc_id"]: sorted(r["types"]) for r in s["anomalies"]} == world["ans"]["anomalies"][day], day
+        truth = world["ans"]["clusters"][day]
+        for t in truth["true"] + truth["coincidental"]:
+            assert any(jaccard(t["pcs"], c["pcs"]) >= 0.5 for c in s["cluster_candidates"]), (day, t)
+        for m in s["unmatched_messages"]:
+            assert m["message"] in world["ans"]["error_classification"]
 
 
 def test_pipeline_with_perfect_llm(world, tmp_path):
@@ -85,8 +91,10 @@ def test_pipeline_with_perfect_llm(world, tmp_path):
     s = score(r["summary"], rec, world["ans"], world["patterns"])
     assert s["baseline"]["anomaly_precision"] == s["baseline"]["anomaly_recall"] == 1.0
     assert s["baseline"]["trap_false_positives"] == 0 and s["baseline"]["identify_fail_reason_accuracy"] == 1.0
-    assert s["llm"]["message_class_accuracy"] == 1.0 and s["llm"]["true_clusters_detected"] == "2/2"
+    assert s["llm"]["message_class_accuracy"] == 1.0 and s["llm"]["true_clusters_detected"] == 2
     assert s["llm"]["cluster_false_positives"] == 0 and s["llm"]["cause_match_rate"] == 1.0
+    assert s["llm"]["proxy_pc_correct"] == s["llm"]["proxy_clusters"] == 1
+    assert "프록시 PC 의심" in r["html"]
     again = run(DAY, llm=PerfectLLM(world["ans"]), **kw)                     # 같은 날짜 재발행은 멱등
     assert again["record"]["publish"]["replayed"] is True
     assert len((tmp_path / "outbox.jsonl").read_text(encoding="utf-8").splitlines()) == 1

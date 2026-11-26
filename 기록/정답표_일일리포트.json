@@ -1,10 +1,223 @@
 {
   "seed": 20261126,
   "report_date": "2026-11-25",
+  "report_dates": [
+    "2026-11-21",
+    "2026-11-22",
+    "2026-11-23",
+    "2026-11-24",
+    "2026-11-25"
+  ],
   "total_pcs_in_db": 300,
   "anomalies": {
+    "2026-11-21": {
+      "PC-A0134": [
+        "error"
+      ],
+      "PC-A0159": [
+        "heartbeat_gap"
+      ],
+      "PC-B0115": [
+        "error"
+      ],
+      "PC-B0117": [
+        "error"
+      ],
+      "PC-C0110": [
+        "error"
+      ],
+      "PC-C0128": [
+        "error"
+      ],
+      "PC-D0102": [
+        "heartbeat_gap"
+      ],
+      "PC-D0123": [
+        "error"
+      ],
+      "PC-D0155": [
+        "error"
+      ],
+      "PC-D0156": [
+        "restart_loop"
+      ],
+      "PC-E0160": [
+        "error"
+      ]
+    },
+    "2026-11-22": {
+      "PC-A0154": [
+        "restart_loop"
+      ],
+      "PC-B0102": [
+        "error"
+      ],
+      "PC-B0105": [
+        "error"
+      ],
+      "PC-B0108": [
+        "error"
+      ],
+      "PC-B0112": [
+        "heartbeat_gap"
+      ],
+      "PC-B0149": [
+        "heartbeat_gap"
+      ],
+      "PC-C0143": [
+        "error"
+      ],
+      "PC-D0117": [
+        "error"
+      ],
+      "PC-D0129": [
+        "error"
+      ],
+      "PC-D0137": [
+        "error"
+      ],
+      "PC-D0146": [
+        "error"
+      ],
+      "PC-D0152": [
+        "error"
+      ]
+    },
+    "2026-11-23": {
+      "PC-A0102": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0103": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0105": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0107": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0108": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0110": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0112": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0115": [
+        "heartbeat_gap"
+      ],
+      "PC-A0116": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0117": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0120": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0122": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0123": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0124": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0126": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0127": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0128": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0131": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0132": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0134": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0136": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0141": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0142": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0145": [
+        "heartbeat_gap"
+      ],
+      "PC-A0146": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0156": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0157": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-A0160": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-C0129": [
+        "heartbeat_gap"
+      ],
+      "PC-C0131": [
+        "error"
+      ],
+      "PC-D0150": [
+        "heartbeat_gap"
+      ],
+      "PC-E0111": [
+        "restart_loop"
+      ],
+      "PC-E0135": [
+        "error"
+      ]
+    },
     "2026-11-24": {
+      "PC-A0155": [
+        "error"
+      ],
       "PC-B0113": [
+        "error"
+      ],
+      "PC-B0123": [
         "error"
       ],
       "PC-C0112": [
@@ -13,10 +226,16 @@
       "PC-C0132": [
         "error"
       ],
+      "PC-D0107": [
+        "error"
+      ],
       "PC-D0109": [
         "error"
       ],
       "PC-D0121": [
+        "error"
+      ],
+      "PC-E0142": [
         "error"
       ]
     },
@@ -229,6 +448,9 @@
       "PC-D0136",
       "PC-D0141",
       "PC-D0160"
+    ],
+    "decoy_gap_d23": [
+      "PC-A0145"
     ]
   },
   "identify_fail": [
@@ -237,72 +459,178 @@
       "internal": "-",
       "expected": "not_in_master",
       "pc_id": "PC-B0144",
-      "db_ip": "10.21.1.153"
+      "db_ip": "10.21.1.153",
+      "days": [
+        "2026-11-24",
+        "2026-11-25"
+      ]
     },
     {
       "conn": "10.20.1.24",
       "internal": "192.168.0.32",
       "expected": "intranet_ip_typo",
       "pc_id": "PC-A0123",
-      "db_ip": "10.20.1.124"
+      "db_ip": "10.20.1.124",
+      "days": [
+        "2026-11-24",
+        "2026-11-25"
+      ]
     },
     {
       "conn": "10.22.1.14",
       "internal": "192.168.2.33",
       "expected": "facility_ip_typo",
       "pc_id": "PC-C0124",
-      "db_internal_ip": "192.168.2.133"
+      "db_internal_ip": "192.168.2.133",
+      "days": [
+        "2026-11-24",
+        "2026-11-25"
+      ]
     },
     {
       "conn": "10.22.9.99",
       "internal": "-",
       "expected": "not_in_master",
-      "pc_id": null
+      "pc_id": null,
+      "days": [
+        "2026-11-25",
+        "2026-11-26"
+      ]
     }
   ],
   "error_classification": {
+    "Address already in use: bind": "bind failed",
     "Connection refused: connect": "connection refused",
     "OutOfMemoryError: Java heap space": "java.lang.OutOfMemoryError",
     "SSL handshake failed: certificate expired": "NEW",
+    "config file not found: client.properties": "NEW",
+    "config file parse error at line 12": "config parse failed",
+    "connection reset by peer": "NEW",
     "disk full: cannot write spool file": "NEW",
     "failed to parse config: retry_count=abc": "config parse failed",
+    "failed to send heartbeat: read timed out": "heartbeat send failed",
+    "license expired on 2026-11-20": "NEW",
     "license server timeout (30000ms)": "license check timeout"
   },
   "clusters": {
-    "true": [
-      {
-        "pcs": [
-          "PC-A0118",
-          "PC-A0140",
-          "PC-C0149",
-          "PC-E0153"
-        ],
-        "pattern": "license check timeout",
-        "shared": "client_version=2.3.1"
-      },
-      {
-        "pcs": [
-          "PC-D0113",
-          "PC-D0116",
-          "PC-D0122",
-          "PC-D0136",
-          "PC-D0141"
-        ],
-        "pattern": "connection refused",
-        "shared": "proxy_pc=PC-D0160",
-        "proxy_pc": "PC-D0160"
-      }
-    ],
-    "coincidental": [
-      {
-        "pcs": [
-          "PC-E0124",
-          "PC-E0130",
-          "PC-E0133"
-        ],
-        "shared": "process=TEST"
-      }
-    ]
+    "2026-11-21": {
+      "true": [],
+      "coincidental": []
+    },
+    "2026-11-22": {
+      "true": [
+        {
+          "pcs": [
+            "PC-D0117",
+            "PC-D0129",
+            "PC-D0137",
+            "PC-D0152"
+          ],
+          "pattern": "heartbeat send failed",
+          "shared": "shared_intranet_ip=10.23.1.66"
+        }
+      ],
+      "coincidental": [
+        {
+          "pcs": [
+            "PC-B0102",
+            "PC-B0105",
+            "PC-B0108"
+          ],
+          "shared": "process=CLEAN",
+          "why": "포트 충돌은 PC마다의 문제"
+        }
+      ]
+    },
+    "2026-11-23": {
+      "true": [
+        {
+          "pcs": [
+            "PC-A0102",
+            "PC-A0103",
+            "PC-A0105",
+            "PC-A0107",
+            "PC-A0108",
+            "PC-A0110",
+            "PC-A0112",
+            "PC-A0116",
+            "PC-A0117",
+            "PC-A0120",
+            "PC-A0122",
+            "PC-A0123",
+            "PC-A0124",
+            "PC-A0126",
+            "PC-A0127",
+            "PC-A0128",
+            "PC-A0131",
+            "PC-A0132",
+            "PC-A0134",
+            "PC-A0136",
+            "PC-A0141",
+            "PC-A0142",
+            "PC-A0146",
+            "PC-A0156",
+            "PC-A0157",
+            "PC-A0160"
+          ],
+          "pattern": "connection refused",
+          "shared": "shared_intranet_ip=10.20.1.24",
+          "proxy_pc": "PC-A0115"
+        }
+      ],
+      "coincidental": []
+    },
+    "2026-11-24": {
+      "true": [
+        {
+          "pcs": [
+            "PC-A0155",
+            "PC-B0123",
+            "PC-D0107",
+            "PC-E0142"
+          ],
+          "pattern": "config parse failed",
+          "shared": "client_version=2.4.2"
+        }
+      ],
+      "coincidental": []
+    },
+    "2026-11-25": {
+      "true": [
+        {
+          "pcs": [
+            "PC-A0118",
+            "PC-A0140",
+            "PC-C0149",
+            "PC-E0153"
+          ],
+          "pattern": "license check timeout",
+          "shared": "client_version=2.3.1"
+        },
+        {
+          "pcs": [
+            "PC-D0113",
+            "PC-D0116",
+            "PC-D0122",
+            "PC-D0136",
+            "PC-D0141"
+          ],
+          "pattern": "connection refused",
+          "shared": "proxy_pc=PC-D0160",
+          "proxy_pc": "PC-D0160"
+        }
+      ],
+      "coincidental": [
+        {
+          "pcs": [
+            "PC-E0124",
+            "PC-E0130",
+            "PC-E0133"
+          ],
+          "shared": "process=TEST"
+        }
+      ]
+    }
   },
   "proxy": {
     "port": 3128,

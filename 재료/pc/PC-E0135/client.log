@@ -1,1 +1,2 @@
 2026-11-20 08:00:00 INFO client started version=2.4.2
+2026-11-23 06:11:36 ERROR java.lang.OutOfMemoryError: Java heap space
