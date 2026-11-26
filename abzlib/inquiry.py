@@ -207,7 +207,7 @@ def result_table(world, post, parsed):
         if h["tool"] in ("update_client_config", "update_jvm_proxy") and h["result"] == "applied":
             mods.setdefault(h["pc_id"], []).append(h)
     for pc in parsed["targets"]:
-        change = "; ".join(f"{k} {h['before'][k]!s} → {h['after'][k]}" for h in mods.get(pc, []) for k in h["after"])
+        change = "; ".join(f"{k} {h['before'][k] or '(없음)'} → {h['after'][k]}" for h in mods.get(pc, []) for k in h["after"])
         rr = history.get(world, history.key(pid, "restart_client_service", pc))
         if rr:
             plan = rr["detail"].get("plan", {})
