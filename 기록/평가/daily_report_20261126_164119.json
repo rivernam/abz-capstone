@@ -1,0 +1,97 @@
+{
+  "date": "2026-11-25",
+  "runs": 3,
+  "baseline": {
+    "anomaly_precision": 1.0,
+    "anomaly_recall": 1.0,
+    "trap_false_positives": 0,
+    "identify_fail_reason_accuracy": 1.0,
+    "identify_fail_extra": 0,
+    "registered_matches": true
+  },
+  "llm_mean": {
+    "message_class_accuracy": 1.0,
+    "coincidental_flagged": 0.0,
+    "cluster_false_positives": 0.0,
+    "cause_match_rate": 1.0,
+    "ungrounded_numbers": 0.0,
+    "judgement_issues": 0.0
+  },
+  "per_run": [
+    {
+      "baseline": {
+        "anomaly_precision": 1.0,
+        "anomaly_recall": 1.0,
+        "trap_false_positives": 0,
+        "identify_fail_reason_accuracy": 1.0,
+        "identify_fail_extra": 0,
+        "registered_matches": true
+      },
+      "llm": {
+        "message_class_accuracy": 1.0,
+        "true_clusters_detected": "2/2",
+        "coincidental_flagged": 0,
+        "cluster_false_positives": 0,
+        "cause_match_rate": 1.0,
+        "ungrounded_numbers": 0,
+        "judgement_issues": 0
+      },
+      "usage": {
+        "model": "claude-haiku-5-5",
+        "input_tokens": 10882,
+        "output_tokens": 5626
+      },
+      "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-25_20261126_164029_876247.json"
+    },
+    {
+      "baseline": {
+        "anomaly_precision": 1.0,
+        "anomaly_recall": 1.0,
+        "trap_false_positives": 0,
+        "identify_fail_reason_accuracy": 1.0,
+        "identify_fail_extra": 0,
+        "registered_matches": true
+      },
+      "llm": {
+        "message_class_accuracy": 1.0,
+        "true_clusters_detected": "2/2",
+        "coincidental_flagged": 0,
+        "cluster_false_positives": 0,
+        "cause_match_rate": 1.0,
+        "ungrounded_numbers": 0,
+        "judgement_issues": 0
+      },
+      "usage": {
+        "model": "claude-haiku-5-5",
+        "input_tokens": 10882,
+        "output_tokens": 5457
+      },
+      "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-25_20261126_164057_386068.json"
+    },
+    {
+      "baseline": {
+        "anomaly_precision": 1.0,
+        "anomaly_recall": 1.0,
+        "trap_false_positives": 0,
+        "identify_fail_reason_accuracy": 1.0,
+        "identify_fail_extra": 0,
+        "registered_matches": true
+      },
+      "llm": {
+        "message_class_accuracy": 1.0,
+        "true_clusters_detected": "2/2",
+        "coincidental_flagged": 0,
+        "cluster_false_positives": 0,
+        "cause_match_rate": 1.0,
+        "ungrounded_numbers": 0,
+        "judgement_issues": 0
+      },
+      "usage": {
+        "model": "claude-haiku-5-5",
+        "input_tokens": 10882,
+        "output_tokens": 4775
+      },
+      "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-25_20261126_164119_904745.json"
+    }
+  ]
+}
