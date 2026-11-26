@@ -1,0 +1,189 @@
+{
+  "seed": 20261126,
+  "report_date": "2026-11-25",
+  "total_pcs_in_db": 300,
+  "anomalies": {
+    "2026-11-24": {
+      "PC-A0103": [
+        "error"
+      ],
+      "PC-B0154": [
+        "error"
+      ],
+      "PC-C0115": [
+        "error"
+      ],
+      "PC-E0116": [
+        "error"
+      ],
+      "PC-E0125": [
+        "error"
+      ]
+    },
+    "2026-11-25": {
+      "PC-A0101": [
+        "error"
+      ],
+      "PC-A0107": [
+        "no_report"
+      ],
+      "PC-A0118": [
+        "restart_loop"
+      ],
+      "PC-A0132": [
+        "heartbeat_gap"
+      ],
+      "PC-A0139": [
+        "heartbeat_gap"
+      ],
+      "PC-A0150": [
+        "heartbeat_gap"
+      ],
+      "PC-A0153": [
+        "no_report"
+      ],
+      "PC-B0115": [
+        "restart_loop"
+      ],
+      "PC-C0102": [
+        "heartbeat_gap"
+      ],
+      "PC-C0105": [
+        "restart_loop"
+      ],
+      "PC-C0108": [
+        "heartbeat_gap"
+      ],
+      "PC-C0115": [
+        "error"
+      ],
+      "PC-C0118": [
+        "error"
+      ],
+      "PC-C0119": [
+        "error"
+      ],
+      "PC-C0125": [
+        "error"
+      ],
+      "PC-C0138": [
+        "heartbeat_gap"
+      ],
+      "PC-C0148": [
+        "no_report"
+      ],
+      "PC-D0106": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-D0113": [
+        "restart_loop"
+      ],
+      "PC-D0116": [
+        "heartbeat_gap"
+      ],
+      "PC-D0123": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-D0148": [
+        "no_report"
+      ],
+      "PC-E0116": [
+        "error"
+      ],
+      "PC-E0119": [
+        "no_report"
+      ]
+    }
+  },
+  "scenarios": {
+    "gap_day": [
+      "PC-A0132",
+      "PC-C0102",
+      "PC-C0108",
+      "PC-C0138",
+      "PC-D0116"
+    ],
+    "gap_midnight": [
+      "PC-A0139",
+      "PC-A0150"
+    ],
+    "restart_loop": [
+      "PC-A0118",
+      "PC-B0115",
+      "PC-C0105",
+      "PC-D0113"
+    ],
+    "error_only": [
+      "PC-A0101",
+      "PC-C0115",
+      "PC-C0118",
+      "PC-C0119",
+      "PC-C0125",
+      "PC-E0116"
+    ],
+    "error_gap": [
+      "PC-D0106",
+      "PC-D0123"
+    ],
+    "no_report": [
+      "PC-A0107",
+      "PC-A0153",
+      "PC-C0148",
+      "PC-D0148",
+      "PC-E0119"
+    ],
+    "ip_mismatch": [
+      "PC-A0113",
+      "PC-D0122",
+      "PC-E0121",
+      "PC-E0128"
+    ],
+    "planned_restart_midnight": [
+      "PC-A0136",
+      "PC-A0160",
+      "PC-B0127",
+      "PC-B0130",
+      "PC-B0133",
+      "PC-C0113",
+      "PC-C0136",
+      "PC-D0107",
+      "PC-D0112",
+      "PC-E0109"
+    ],
+    "prev_error": [
+      "PC-A0103",
+      "PC-B0154",
+      "PC-E0125"
+    ]
+  },
+  "orphans": [
+    "PC-C0199",
+    "PC-D0198"
+  ],
+  "ip_mismatch": {
+    "PC-E0128": {
+      "db_ip": "10.24.1.73",
+      "log_ip": "10.24.1.37"
+    },
+    "PC-D0122": {
+      "db_ip": "10.23.1.13",
+      "log_ip": "10.23.1.31"
+    },
+    "PC-A0113": {
+      "db_ip": "10.20.1.23",
+      "log_ip": "10.20.1.22"
+    },
+    "PC-E0121": {
+      "db_ip": "10.24.1.03",
+      "log_ip": "10.24.1.30"
+    }
+  },
+  "rules": {
+    "heartbeat_gap_minutes": 30,
+    "restart_loop_start_count": 5,
+    "gap_belongs_to_date_of_earlier_heartbeat": true,
+    "no_report": "DB에 있는 PC인데 해당 날짜 로그가 한 줄도 없음(전날에는 있었음)"
+  }
+}
