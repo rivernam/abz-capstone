@@ -1,0 +1,199 @@
+{
+  "report_date": "2026-11-22",
+  "generated_at": "2026-11-27 08:27",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 6942,
+    "output_tokens": 3757
+  },
+  "input_sha256": "fc77765957cec3526f83491647eebbc8763165e95d8a00acf26666509d0ef22b",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": false,
+        "cause": "LITHO 공정이라는 속성만 공유하고 heartbeat 전송 실패와 라이선스 응답 지연이 섞여 있어 하나의 원인으로 묶이지 않으므로 우연히 모인 묶음으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": true,
+        "cause": "같은 사내망 IP 그룹(LT-700)의 PC들이 같은 시간대에 heartbeat 전송 실패를 보여 사내망 프록시 또는 경로 문제로 추정한다. 같은 사내망 IP 그룹에서 신호만 끊기고 오류가 없는 PC는 입력 데이터에 없어 프록시 PC는 특정하지 않는다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C3",
+        "meaningful": false,
+        "cause": "C2와 같은 사건을 장비 모델과 사내망 IP 기준으로 잡은 중복 후보이며, 원인을 더 잘 설명하는 C2를 대표로 둔다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C4",
+        "meaningful": true,
+        "cause": "같은 공정(CLEAN)의 PC 3대에서 같은 포트 충돌(bind failed)이 같은 시간대에 발생해 라인 공통 설정이나 배포 문제로 추정한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C5",
+        "meaningful": false,
+        "cause": "C2와 PC 구성이 겹치는 중복 후보이며, 클라이언트 버전만으로는 heartbeat 실패를 설명하지 못하므로 사내망 IP 기준인 C2가 원인을 더 잘 설명한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C6",
+        "meaningful": false,
+        "cause": "C4와 같은 PC와 같은 시간대를 오류 유형 기준으로 잡은 중복 후보이므로 대표인 C4만 남긴다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C7",
+        "meaningful": false,
+        "cause": "서로 다른 공정과 장비에서 heartbeat 실패와 라이선스 응답 지연이 섞여 있고 클라이언트 버전만 공유하므로 우연히 모인 묶음으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C8",
+        "meaningful": false,
+        "cause": "C5와 같은 PC로 구성된 중복 후보이며 클라이언트 버전만 공유하므로 사내망 IP 기준인 C2가 원인을 더 잘 설명한다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "등록 300대 중 정상은 288대로 정상 비율은 96.0%이고, 이상 PC는 12대로 전일보다 늘었다. 이상 유형은 오류가 9건으로 가장 많다. 의미 있는 묶음은 두 건이다. 첫째, LT-700 장비의 같은 사내망 IP 그룹 4대에서 heartbeat 전송 실패가 같은 시간대에 발생해 사내망 경로 문제를 의심한다. 둘째, CLEAN 공정 3대에서 포트 충돌(bind failed)이 같은 시간대에 발생해 라인 공통 설정 문제를 의심한다. 식별 실패와 확인 필요 PC는 없다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0146",
+        "PC-D0152"
+      ],
+      "shared": {
+        "process": "LITHO"
+      },
+      "meaningful": false,
+      "cause": "LITHO 공정이라는 속성만 공유하고 heartbeat 전송 실패와 라이선스 응답 지연이 섞여 있어 하나의 원인으로 묶이지 않으므로 우연히 모인 묶음으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "pattern:heartbeat send failed",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "process": "LITHO",
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.66",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": true,
+      "cause": "같은 사내망 IP 그룹(LT-700)의 PC들이 같은 시간대에 heartbeat 전송 실패를 보여 사내망 프록시 또는 경로 문제로 추정한다. 같은 사내망 IP 그룹에서 신호만 끊기고 오류가 없는 PC는 입력 데이터에 없어 프록시 PC는 특정하지 않는다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C3",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.66",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 사건을 장비 모델과 사내망 IP 기준으로 잡은 중복 후보이며, 원인을 더 잘 설명하는 C2를 대표로 둔다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C4",
+      "signal": "pattern:bind failed",
+      "pcs": [
+        "PC-B0102",
+        "PC-B0105",
+        "PC-B0108"
+      ],
+      "shared": {
+        "process": "CLEAN"
+      },
+      "meaningful": true,
+      "cause": "같은 공정(CLEAN)의 PC 3대에서 같은 포트 충돌(bind failed)이 같은 시간대에 발생해 라인 공통 설정이나 배포 문제로 추정한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C5",
+      "signal": "pattern:heartbeat send failed",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C2와 PC 구성이 겹치는 중복 후보이며, 클라이언트 버전만으로는 heartbeat 실패를 설명하지 못하므로 사내망 IP 기준인 C2가 원인을 더 잘 설명한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C6",
+      "signal": "type:error",
+      "pcs": [
+        "PC-B0102",
+        "PC-B0105",
+        "PC-B0108"
+      ],
+      "shared": {
+        "process": "CLEAN"
+      },
+      "meaningful": false,
+      "cause": "C4와 같은 PC와 같은 시간대를 오류 유형 기준으로 잡은 중복 후보이므로 대표인 C4만 남긴다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C7",
+      "signal": "type:error",
+      "pcs": [
+        "PC-C0143",
+        "PC-D0129",
+        "PC-D0146"
+      ],
+      "shared": {
+        "client_version": "2.4.0"
+      },
+      "meaningful": false,
+      "cause": "서로 다른 공정과 장비에서 heartbeat 실패와 라이선스 응답 지연이 섞여 있고 클라이언트 버전만 공유하므로 우연히 모인 묶음으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C8",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C5와 같은 PC로 구성된 중복 후보이며 클라이언트 버전만 공유하므로 사내망 IP 기준인 C2가 원인을 더 잘 설명한다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}

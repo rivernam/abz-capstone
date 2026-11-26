@@ -1,0 +1,66 @@
+{
+  "report_date": "2026-11-24",
+  "generated_at": "2026-11-27 08:27",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 4666,
+    "output_tokens": 1577
+  },
+  "input_sha256": "9ecb8a6ffbe00914015802d395ceab5bf1bd5c45db80f6d4e7d7cf08d0e9809d",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": true,
+        "cause": "클라이언트 2.4.2 버전에서 같은 설정 값 오류(config parse failed)가 동시에 발생해 공통 설정 문제로 추정된다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": false,
+        "cause": "C1과 같은 4대, 같은 시간대, 같은 오류를 error 유형 기준으로 다시 잡은 중복 후보이므로 별도 원인으로 보지 않는다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "정상 PC 비율은 97.0%(정상 291대, 이상 9대)이고, 이상 PC는 전일 33대에서 9대로 줄었으며 모두 error 유형이다. 의미 있는 묶음은 클라이언트 2.4.2 버전의 설정 값 오류(config parse failed) 1건으로, 4대(C1)가 같은 원인으로 확인되었다. 식별 실패 3건은 사내망 IP 오타 등 입력 문제이므로 확인이 필요하며, 확인 필요 PC는 0대이다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "pattern:config parse failed",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": true,
+      "cause": "클라이언트 2.4.2 버전에서 같은 설정 값 오류(config parse failed)가 동시에 발생해 공통 설정 문제로 추정된다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C1과 같은 4대, 같은 시간대, 같은 오류를 error 유형 기준으로 다시 잡은 중복 후보이므로 별도 원인으로 보지 않는다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}
