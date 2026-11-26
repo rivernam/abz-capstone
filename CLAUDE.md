@@ -15,3 +15,7 @@
 - 시험: `python -m pytest -q`
 - 일일 리포트: `python -m runner.daily_report --date 2026-11-25`
 - 일일 리포트 채점: `python -m eval.score_daily_report --runs 3`
+- 게시판: `python -m tools.board add|list|show|notes|html`
+- 문의 처리: `python -m runner.inquiry_agent --post-id 3 [--root 복사본]` (재료/pc를 바꾼다)
+- 문의 시험 세트 만들기: `python generator/make_inquiries.py`
+- 문의 채점: `python -m eval.score_inquiries --runs 1` (`--scripted`는 LLM 없는 기준선)
