@@ -235,7 +235,7 @@
     {
       "conn": "10.21.1.53",
       "internal": "-",
-      "expected": "intranet_ip_typo",
+      "expected": "not_in_master",
       "pc_id": "PC-B0144",
       "db_ip": "10.21.1.153"
     },
@@ -256,7 +256,7 @@
     {
       "conn": "10.22.9.99",
       "internal": "-",
-      "expected": "unregistered",
+      "expected": "not_in_master",
       "pc_id": null
     }
   ],

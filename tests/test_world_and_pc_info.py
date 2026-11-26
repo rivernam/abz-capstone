@@ -85,27 +85,22 @@ def test_identification_is_consistent(world):
     assert fails == {(f["conn"], f["internal"]) for f in world["ans"]["identify_fail"]}
 
 
-def identify_fail_reason(db, no_report, conn, internal):
-    """구현명세 §5 식별 실패 사유 규칙. (사유, 후보 PC 목록)을 돌려준다."""
+def identify_fail_reason(db, conn, internal):
+    """구현명세 §5 식별 실패 사유 규칙. (사유, 특정된 PC 또는 None)."""
     same_internal = [pc for pc, r in db.items() if internal != "-" and r["internal_ip"] == internal]
     if same_internal:
-        return "intranet_ip_typo", same_internal
-    same_ip = [pc for pc, r in db.items() if r["ip"] == conn]
-    if same_ip:
-        return "facility_ip_typo", sorted(set(same_ip) & no_report)
-    band = conn.rsplit(".", 1)[0] + "."
-    near = sorted(pc for pc in no_report if db[pc]["ip"].startswith(band) and (internal == "-") == (db[pc]["internal_ip"] is None))
-    return ("intranet_ip_typo", near) if near else ("unregistered", [])
+        return "intranet_ip_typo", same_internal[0]
+    if internal != "-" and any(r["ip"] == conn for r in db.values()):
+        return "facility_ip_typo", None
+    return "not_in_master", None
 
 
 def test_identify_fail_reasons(world):
-    db, ans = world["db"], world["ans"]
-    no_report = {pc for pc, c in ans["anomalies"][D25].items() if "no_report" in c}
-    for f in ans["identify_fail"]:
-        reason, cands = identify_fail_reason(db, no_report, f["conn"], f["internal"])
+    for f in world["ans"]["identify_fail"]:
+        reason, pc = identify_fail_reason(world["db"], f["conn"], f["internal"])
         assert reason == f["expected"], f
-        if f["pc_id"]:
-            assert f["pc_id"] in cands
+        if reason == "intranet_ip_typo":
+            assert pc == f["pc_id"]
 
 
 def anomalies(db, logs, day):
@@ -232,5 +227,5 @@ def test_get_pc_info(world):
     missing = get_pc_info("PC-C0199", db)
     assert missing == {"found": False, "input_id": "PC-C0199", "pc_id": "PC-C0199", "reason": "not_registered"}
     assert get_pc_info("abc", db)["reason"] == "invalid_format"
-    typo = next(f for f in ans["identify_fail"] if f["expected"] == "intranet_ip_typo")
+    typo = next(f for f in ans["identify_fail"] if "db_ip" in f)
     assert get_pc_info(typo["pc_id"], db)["ip"] == typo["db_ip"]

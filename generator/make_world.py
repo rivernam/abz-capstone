@@ -456,7 +456,9 @@ def generate(root=None):
 
     # ---- 8. 기준정보 DB (오입력 IP 반영) ----
     for pc, v in intranet_typo.items():
-        identify_fail.append({"conn": conn_addr[pc], "internal": reported_internal[pc], "expected": "intranet_ip_typo",
+        # 설비망 IP가 있으면 그것으로 기존 PC를 특정할 수 있지만, 없으면 미등록과 구별할 수 없다.
+        expected = "intranet_ip_typo" if reported_internal[pc] != "-" else "not_in_master"
+        identify_fail.append({"conn": conn_addr[pc], "internal": reported_internal[pc], "expected": expected,
                               "pc_id": pc, "db_ip": v})
         by_pc[pc]["ip"] = v
     for pc, v in facility_typo.items():
@@ -464,7 +466,7 @@ def generate(root=None):
                               "pc_id": pc, "db_internal_ip": v})
         by_pc[pc]["internal_ip"] = v
     for o in orphans:
-        identify_fail.append({"conn": o["ip"], "internal": o["internal"] or "-", "expected": "unregistered", "pc_id": None})
+        identify_fail.append({"conn": o["ip"], "internal": o["internal"] or "-", "expected": "not_in_master", "pc_id": None})
     db_dir = material / "db"
     db_dir.mkdir(parents=True, exist_ok=True)
     db_path = db_dir / "기준정보.sqlite"
