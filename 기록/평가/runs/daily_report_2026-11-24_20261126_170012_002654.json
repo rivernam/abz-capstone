@@ -1,0 +1,66 @@
+{
+  "report_date": "2026-11-24",
+  "generated_at": "2026-11-26 17:00",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 4832,
+    "output_tokens": 1401
+  },
+  "input_sha256": "9ecb8a6ffbe00914015802d395ceab5bf1bd5c45db80f6d4e7d7cf08d0e9809d",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": true,
+        "cause": "클라이언트 2.4.2 버전 PC 4대에서 같은 설정 키 값 오류(config parse failed)가 08:10~08:46 사이에 발생해, 해당 버전의 설정 값 문제로 보인다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": false,
+        "cause": "C1과 같은 4대, 같은 시간대를 error 유형으로 다시 잡은 후보이므로 C1과 같은 사건이다. 원인을 더 잘 설명하는 C1만 의미 있는 묶음으로 본다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "등록 PC 300대 중 정상은 291대이고 정상 비율은 97.0%이다. 이상 PC는 9대로 전일 33대보다 줄었으며, 9대 모두 error 유형이다. 이 중 4대는 클라이언트 2.4.2 버전에서 config parse failed가 같은 시간대에 난 묶음으로, 해당 버전의 설정 값 문제로 보여 우선 확인이 필요하다. 식별 실패 3건은 PC를 특정하지 못했으므로 확인이 필요하다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "pattern:config parse failed",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": true,
+      "cause": "클라이언트 2.4.2 버전 PC 4대에서 같은 설정 키 값 오류(config parse failed)가 08:10~08:46 사이에 발생해, 해당 버전의 설정 값 문제로 보인다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C1과 같은 4대, 같은 시간대를 error 유형으로 다시 잡은 후보이므로 C1과 같은 사건이다. 원인을 더 잘 설명하는 C1만 의미 있는 묶음으로 본다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}

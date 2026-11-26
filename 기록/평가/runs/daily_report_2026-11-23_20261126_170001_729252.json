@@ -1,0 +1,520 @@
+{
+  "report_date": "2026-11-23",
+  "generated_at": "2026-11-26 17:00",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 39005,
+    "output_tokens": 4289
+  },
+  "input_sha256": "ea8b7552b2d7a7b99151f179c6af75bdf517a1d92bc0d6a1f9dbf4d33ac00d20",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": false,
+        "cause": "ETCH 공정 전체를 기준으로 잡은 묶음이며, 같은 프록시 접속 거부 사건을 다른 각도로 본 것이라 가장 잘 설명하는 C5에 포함된다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": false,
+        "cause": "동일 모델과 IP 대역 기준의 묶음이며, 같은 프록시 접속 거부 사건을 다른 각도로 본 것이라 C5가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C3",
+        "meaningful": false,
+        "cause": "접속 거부 패턴 기준의 묶음이며, 같은 프록시 접속 거부 사건의 중복 묶음이라 C5가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C4",
+        "meaningful": false,
+        "cause": "오류 유형 기준의 묶음이며, 같은 프록시 접속 거부 사건의 중복 묶음이라 C5가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C5",
+        "meaningful": true,
+        "cause": "같은 사내망 IP 그룹 PC들이 프록시 접속을 거부당해 하트비트가 함께 끊겼다. 공유 속성인 사내망 IP가 같은 프록시 경로를 가리키므로 원인을 직접 설명한다.",
+        "proxy_pc": "PC-A0115"
+      },
+      {
+        "id": "C6",
+        "meaningful": false,
+        "cause": "C5와 같은 사내망 IP 그룹의 접속 거부 묶음이며, 같은 사건의 중복 묶음이라 C5가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C7",
+        "meaningful": false,
+        "cause": "C5와 같은 사내망 IP 그룹의 오류 묶음이며, 같은 사건의 중복 묶음이라 C5가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C8",
+        "meaningful": false,
+        "cause": "클라이언트 버전 2.4.2 기준의 접속 거부 묶음이며, 같은 프록시 사건의 일부라 C5가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C9",
+        "meaningful": false,
+        "cause": "클라이언트 버전 2.4.2 기준의 오류 묶음이며, 같은 프록시 사건의 일부라 C5가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C10",
+        "meaningful": false,
+        "cause": "클라이언트 버전 2.4.2 기준의 하트비트 끊김 묶음이며, 같은 프록시 사건의 일부라 C5가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C11",
+        "meaningful": false,
+        "cause": "클라이언트 버전 2.4.0 기준의 하트비트 끊김 묶음이며, 같은 프록시 접속 거부 사건의 일부라 버전 자체가 원인이 아니다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C12",
+        "meaningful": false,
+        "cause": "클라이언트 버전 2.4.0 기준의 접속 거부 묶음이며, 같은 프록시 접속 거부 사건의 일부라 C5가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C13",
+        "meaningful": false,
+        "cause": "클라이언트 버전 2.4.0 기준의 오류 묶음이며, 같은 프록시 접속 거부 사건의 일부라 C5가 대표한다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "2026-11-23 일일 집계 기준 정상 PC는 300대 중 267대로 정상 비율은 89.0%입니다. 이상 PC는 33대이며 전일 12대에서 늘었습니다. 공정별로는 ETCH의 정상 비율이 53.3%로 가장 낮습니다. 의미 있는 묶음은 하나로, 같은 사내망 IP 그룹 26대가 프록시 접속 거부로 하트비트가 끊긴 건이며 프록시 후보 PC는 PC-A0115입니다. 식별 실패와 확인 필요 PC는 없습니다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0107",
+        "PC-A0108",
+        "PC-A0110",
+        "PC-A0112",
+        "PC-A0115",
+        "PC-A0116",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0123",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0141",
+        "PC-A0142",
+        "PC-A0145",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "process": "ETCH"
+      },
+      "meaningful": false,
+      "cause": "ETCH 공정 전체를 기준으로 잡은 묶음이며, 같은 프록시 접속 거부 사건을 다른 각도로 본 것이라 가장 잘 설명하는 C5에 포함된다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0107",
+        "PC-A0108",
+        "PC-A0110",
+        "PC-A0112",
+        "PC-A0115",
+        "PC-A0116",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0123",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0141",
+        "PC-A0142",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "equipment_model": "ET-300",
+        "facility_band": "192.168.0.x"
+      },
+      "meaningful": false,
+      "cause": "동일 모델과 IP 대역 기준의 묶음이며, 같은 프록시 접속 거부 사건을 다른 각도로 본 것이라 C5가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C3",
+      "signal": "pattern:connection refused",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0107",
+        "PC-A0108",
+        "PC-A0110",
+        "PC-A0112",
+        "PC-A0116",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0123",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0141",
+        "PC-A0142",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "process": "ETCH",
+        "equipment_model": "ET-300",
+        "facility_band": "192.168.0.x"
+      },
+      "meaningful": false,
+      "cause": "접속 거부 패턴 기준의 묶음이며, 같은 프록시 접속 거부 사건의 중복 묶음이라 C5가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C4",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0107",
+        "PC-A0108",
+        "PC-A0110",
+        "PC-A0112",
+        "PC-A0116",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0123",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0141",
+        "PC-A0142",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "process": "ETCH",
+        "equipment_model": "ET-300",
+        "facility_band": "192.168.0.x"
+      },
+      "meaningful": false,
+      "cause": "오류 유형 기준의 묶음이며, 같은 프록시 접속 거부 사건의 중복 묶음이라 C5가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C5",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0107",
+        "PC-A0108",
+        "PC-A0110",
+        "PC-A0112",
+        "PC-A0115",
+        "PC-A0116",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0141",
+        "PC-A0142",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "shared_intranet_ip": "10.20.1.24"
+      },
+      "meaningful": true,
+      "cause": "같은 사내망 IP 그룹 PC들이 프록시 접속을 거부당해 하트비트가 함께 끊겼다. 공유 속성인 사내망 IP가 같은 프록시 경로를 가리키므로 원인을 직접 설명한다.",
+      "proxy_pc": "PC-A0115"
+    },
+    {
+      "id": "C6",
+      "signal": "pattern:connection refused",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0107",
+        "PC-A0108",
+        "PC-A0110",
+        "PC-A0112",
+        "PC-A0116",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0141",
+        "PC-A0142",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "shared_intranet_ip": "10.20.1.24"
+      },
+      "meaningful": false,
+      "cause": "C5와 같은 사내망 IP 그룹의 접속 거부 묶음이며, 같은 사건의 중복 묶음이라 C5가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C7",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0107",
+        "PC-A0108",
+        "PC-A0110",
+        "PC-A0112",
+        "PC-A0116",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0141",
+        "PC-A0142",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "shared_intranet_ip": "10.20.1.24"
+      },
+      "meaningful": false,
+      "cause": "C5와 같은 사내망 IP 그룹의 오류 묶음이며, 같은 사건의 중복 묶음이라 C5가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C8",
+      "signal": "pattern:connection refused",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0108",
+        "PC-A0112",
+        "PC-A0116",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "클라이언트 버전 2.4.2 기준의 접속 거부 묶음이며, 같은 프록시 사건의 일부라 C5가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C9",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0108",
+        "PC-A0112",
+        "PC-A0116",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "클라이언트 버전 2.4.2 기준의 오류 묶음이며, 같은 프록시 사건의 일부라 C5가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C10",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-A0102",
+        "PC-A0103",
+        "PC-A0105",
+        "PC-A0108",
+        "PC-A0112",
+        "PC-A0116",
+        "PC-A0127",
+        "PC-A0128",
+        "PC-A0131",
+        "PC-A0132",
+        "PC-A0134",
+        "PC-A0136",
+        "PC-A0146",
+        "PC-A0156",
+        "PC-A0157",
+        "PC-A0160"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "클라이언트 버전 2.4.2 기준의 하트비트 끊김 묶음이며, 같은 프록시 사건의 일부라 C5가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C11",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-A0107",
+        "PC-A0110",
+        "PC-A0115",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0123",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0141"
+      ],
+      "shared": {
+        "client_version": "2.4.0"
+      },
+      "meaningful": false,
+      "cause": "클라이언트 버전 2.4.0 기준의 하트비트 끊김 묶음이며, 같은 프록시 접속 거부 사건의 일부라 버전 자체가 원인이 아니다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C12",
+      "signal": "pattern:connection refused",
+      "pcs": [
+        "PC-A0107",
+        "PC-A0110",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0123",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0141"
+      ],
+      "shared": {
+        "client_version": "2.4.0"
+      },
+      "meaningful": false,
+      "cause": "클라이언트 버전 2.4.0 기준의 접속 거부 묶음이며, 같은 프록시 접속 거부 사건의 일부라 C5가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C13",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0107",
+        "PC-A0110",
+        "PC-A0117",
+        "PC-A0120",
+        "PC-A0122",
+        "PC-A0123",
+        "PC-A0124",
+        "PC-A0126",
+        "PC-A0141"
+      ],
+      "shared": {
+        "client_version": "2.4.0"
+      },
+      "meaningful": false,
+      "cause": "클라이언트 버전 2.4.0 기준의 오류 묶음이며, 같은 프록시 접속 거부 사건의 일부라 C5가 대표한다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}

@@ -46,6 +46,7 @@ def llm_input(s, patterns):
         "anomaly_type_counts": {t: sum(t in r["types"] for r in s["anomalies"]) for t in TYPE_LABEL},
         "identify_fail_pairs": len(s["identify_fail"]),
         "needs_check_pcs": len(s["needs_check"]),
+        "cluster_candidate_pc_counts": {c["id"]: len(c["pcs"]) for c in s["cluster_candidates"]},
     }
     if vs:
         facts["prev_day"] = {"date": vs["prev_day"], "anomalous_pcs": vs["anomalous"]["prev"],
@@ -55,7 +56,8 @@ def llm_input(s, patterns):
     rows = {r["pc_id"]: r for r in s["anomalies"]}
     cands = []
     for c in s["cluster_candidates"]:
-        cands.append({"id": c["id"], "signal": c["signal"], "shared": c["shared"], "first": c["first"], "last": c["last"],
+        cands.append({"id": c["id"], "signal": c["signal"], "pc_count": len(c["pcs"]), "shared": c["shared"],
+                      "first": c["first"], "last": c["last"],
                       "pcs": [{"pc_id": pc, "process": rows[pc]["process"], "equipment_model": rows[pc]["equipment_model"],
                                "client_version": rows[pc]["client_version"], "types": rows[pc]["types"],
                                "error_messages": sorted({e["message"] for e in rows[pc]["errors"]}),

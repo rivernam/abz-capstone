@@ -1,0 +1,199 @@
+{
+  "report_date": "2026-11-22",
+  "generated_at": "2026-11-26 16:59",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 7108,
+    "output_tokens": 3349
+  },
+  "input_sha256": "fc77765957cec3526f83491647eebbc8763165e95d8a00acf26666509d0ef22b",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": false,
+        "cause": "하트비트 전송 실패 4대와 라이선스 서버 응답 지연 1대가 섞여 있어 원인이 서로 다르다. 공유 속성인 공정 LITHO는 어느 원인도 설명하지 못하므로 우연히 모인 묶음이다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": true,
+        "cause": "같은 사내망 IP 그룹을 쓰는 LITHO LT-700 PC 4대가 같은 시간대에 하트비트 전송에 실패했다. 공유 네트워크 경로의 서버 통신 지연으로 추정한다. 같은 시간대에 신호만 끊기고 오류가 없는 프록시 PC는 확인되지 않았다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C3",
+        "meaningful": false,
+        "cause": "C2와 같은 사건을 장비 모델과 사내망 IP 그룹 속성으로 잡은 후보다. 원인을 더 잘 설명하는 C2를 대표로 두고 이 후보는 중복으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C4",
+        "meaningful": false,
+        "cause": "CLEAN 공정 PC들의 포트 충돌은 PC 안에서 생기는 문제다. 공정이 같다는 속성은 이를 설명하지 못하므로 우연한 묶음으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C5",
+        "meaningful": false,
+        "cause": "C2와 같은 하트비트 실패 사건의 부분 집합이다. 클라이언트 버전 2.4.2는 통신 지연을 설명하지 않으므로 C2로 대표하고 이 후보는 중복으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C6",
+        "meaningful": false,
+        "cause": "C4와 같은 CLEAN 공정 포트 충돌을 오류 유형 기준으로 잡은 후보다. 원인이 PC 안에 있고 공정 속성은 이를 설명하지 못하므로 중복이자 우연한 묶음으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C7",
+        "meaningful": false,
+        "cause": "클라이언트 버전 2.4.0을 공유하지만 하트비트 실패와 라이선스 응답 지연이 섞여 있고 공정도 서로 다르다. 공유 버전은 두 원인을 모두 설명하지 못하므로 우연한 묶음으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C8",
+        "meaningful": false,
+        "cause": "C2와 같은 하트비트 실패 사건을 클라이언트 버전 2.4.2 기준으로 잡은 부분 집합이다. 버전은 통신 지연을 설명하지 않으므로 C2로 대표하고 이 후보는 중복으로 본다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "2026-11-22 정상 PC 비율은 96.0%이며, 300대 중 288대가 정상이고 이상 PC는 12대로 전일 11대에서 늘었다. 의미 있는 묶음은 같은 사내망 IP 그룹을 쓰는 LITHO LT-700 PC 4대의 하트비트 전송 실패(서버 통신 지연 추정) 1건이며, 이 묶음에서 프록시 PC는 확인되지 않았다. 나머지 후보는 같은 사건의 중복이거나 공정·버전만 공유하는 우연한 묶음으로 보아 의미 있는 묶음에서 제외했다. 식별 실패와 확인 필요는 각각 0건이다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0146",
+        "PC-D0152"
+      ],
+      "shared": {
+        "process": "LITHO"
+      },
+      "meaningful": false,
+      "cause": "하트비트 전송 실패 4대와 라이선스 서버 응답 지연 1대가 섞여 있어 원인이 서로 다르다. 공유 속성인 공정 LITHO는 어느 원인도 설명하지 못하므로 우연히 모인 묶음이다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "pattern:heartbeat send failed",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "process": "LITHO",
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.66",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": true,
+      "cause": "같은 사내망 IP 그룹을 쓰는 LITHO LT-700 PC 4대가 같은 시간대에 하트비트 전송에 실패했다. 공유 네트워크 경로의 서버 통신 지연으로 추정한다. 같은 시간대에 신호만 끊기고 오류가 없는 프록시 PC는 확인되지 않았다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C3",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.66",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 사건을 장비 모델과 사내망 IP 그룹 속성으로 잡은 후보다. 원인을 더 잘 설명하는 C2를 대표로 두고 이 후보는 중복으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C4",
+      "signal": "pattern:bind failed",
+      "pcs": [
+        "PC-B0102",
+        "PC-B0105",
+        "PC-B0108"
+      ],
+      "shared": {
+        "process": "CLEAN"
+      },
+      "meaningful": false,
+      "cause": "CLEAN 공정 PC들의 포트 충돌은 PC 안에서 생기는 문제다. 공정이 같다는 속성은 이를 설명하지 못하므로 우연한 묶음으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C5",
+      "signal": "pattern:heartbeat send failed",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 하트비트 실패 사건의 부분 집합이다. 클라이언트 버전 2.4.2는 통신 지연을 설명하지 않으므로 C2로 대표하고 이 후보는 중복으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C6",
+      "signal": "type:error",
+      "pcs": [
+        "PC-B0102",
+        "PC-B0105",
+        "PC-B0108"
+      ],
+      "shared": {
+        "process": "CLEAN"
+      },
+      "meaningful": false,
+      "cause": "C4와 같은 CLEAN 공정 포트 충돌을 오류 유형 기준으로 잡은 후보다. 원인이 PC 안에 있고 공정 속성은 이를 설명하지 못하므로 중복이자 우연한 묶음으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C7",
+      "signal": "type:error",
+      "pcs": [
+        "PC-C0143",
+        "PC-D0129",
+        "PC-D0146"
+      ],
+      "shared": {
+        "client_version": "2.4.0"
+      },
+      "meaningful": false,
+      "cause": "클라이언트 버전 2.4.0을 공유하지만 하트비트 실패와 라이선스 응답 지연이 섞여 있고 공정도 서로 다르다. 공유 버전은 두 원인을 모두 설명하지 못하므로 우연한 묶음으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C8",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 하트비트 실패 사건을 클라이언트 버전 2.4.2 기준으로 잡은 부분 집합이다. 버전은 통신 지연을 설명하지 않으므로 C2로 대표하고 이 후보는 중복으로 본다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}

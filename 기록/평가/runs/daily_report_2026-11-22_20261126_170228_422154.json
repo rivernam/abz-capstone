@@ -1,0 +1,199 @@
+{
+  "report_date": "2026-11-22",
+  "generated_at": "2026-11-26 17:02",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 7108,
+    "output_tokens": 2977
+  },
+  "input_sha256": "fc77765957cec3526f83491647eebbc8763165e95d8a00acf26666509d0ef22b",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": false,
+        "cause": "같은 공정(LITHO)이라는 속성만 공유하고, 메시지는 서버 통신 지연(4대)과 라이선스 서버 지연(1대)으로 원인이 달라 우연히 모인 묶음이다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": true,
+        "cause": "LITHO LT-700 4대가 같은 사내망 IP 그룹을 공유하며 같은 시간대에 서버 통신 지연(heartbeat 실패)을 겪어, 공유 네트워크 경로의 통신 지연으로 설명된다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C3",
+        "meaningful": false,
+        "cause": "C2와 같은 사건을 장비 모델과 사내망 IP 그룹 기준으로 다르게 잡은 후보이며, 원인을 더 직접 설명하는 C2를 대표로 둔다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C4",
+        "meaningful": false,
+        "cause": "포트 충돌은 PC 안에서 생기는 문제이므로, 같은 공정이라는 속성은 여러 대에서 같은 오류가 나는 이유를 설명하지 못한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C5",
+        "meaningful": false,
+        "cause": "C2와 같은 heartbeat 실패 사건의 부분 집합이며, 같은 클라이언트 버전은 통신 지연의 원인으로 설명되지 않아 C2를 대표로 둔다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C6",
+        "meaningful": false,
+        "cause": "C4와 같은 CLEAN 공정 포트 충돌 사건을 오류 유형 기준으로 다르게 잡은 후보이며, PC 내부 원인이라 공정 속성으로 묶이지 않는다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C7",
+        "meaningful": false,
+        "cause": "같은 클라이언트 버전 2.4.0이라는 속성은 서버 통신 지연과 라이선스 지연이라는 서로 다른 원인을 함께 설명하지 못해 우연한 묶음이다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C8",
+        "meaningful": false,
+        "cause": "C2와 같은 heartbeat 실패 사건을 클라이언트 버전 기준으로 다르게 잡은 후보이며, 원인을 더 직접 설명하는 C2를 대표로 둔다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "정상 PC 비율은 96.0%이고, 이상 PC는 12대로 전일 11대보다 늘었다. 가장 우선 볼 묶음은 LITHO 공정의 같은 사내망 IP 그룹 4대가 같은 시간대에 서버 통신 지연(heartbeat 실패)을 겪은 건으로, 공유 네트워크 경로를 확인할 필요가 있다. 이 묶음에서 프록시 PC는 입력 데이터로 확인되지 않았다. CLEAN 공정의 포트 충돌과 나머지 PC별 오류는 공통 원인으로 보지 않으며, 식별 실패와 확인 필요 PC는 없다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0146",
+        "PC-D0152"
+      ],
+      "shared": {
+        "process": "LITHO"
+      },
+      "meaningful": false,
+      "cause": "같은 공정(LITHO)이라는 속성만 공유하고, 메시지는 서버 통신 지연(4대)과 라이선스 서버 지연(1대)으로 원인이 달라 우연히 모인 묶음이다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "pattern:heartbeat send failed",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "process": "LITHO",
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.66",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": true,
+      "cause": "LITHO LT-700 4대가 같은 사내망 IP 그룹을 공유하며 같은 시간대에 서버 통신 지연(heartbeat 실패)을 겪어, 공유 네트워크 경로의 통신 지연으로 설명된다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C3",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.66",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 사건을 장비 모델과 사내망 IP 그룹 기준으로 다르게 잡은 후보이며, 원인을 더 직접 설명하는 C2를 대표로 둔다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C4",
+      "signal": "pattern:bind failed",
+      "pcs": [
+        "PC-B0102",
+        "PC-B0105",
+        "PC-B0108"
+      ],
+      "shared": {
+        "process": "CLEAN"
+      },
+      "meaningful": false,
+      "cause": "포트 충돌은 PC 안에서 생기는 문제이므로, 같은 공정이라는 속성은 여러 대에서 같은 오류가 나는 이유를 설명하지 못한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C5",
+      "signal": "pattern:heartbeat send failed",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 heartbeat 실패 사건의 부분 집합이며, 같은 클라이언트 버전은 통신 지연의 원인으로 설명되지 않아 C2를 대표로 둔다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C6",
+      "signal": "type:error",
+      "pcs": [
+        "PC-B0102",
+        "PC-B0105",
+        "PC-B0108"
+      ],
+      "shared": {
+        "process": "CLEAN"
+      },
+      "meaningful": false,
+      "cause": "C4와 같은 CLEAN 공정 포트 충돌 사건을 오류 유형 기준으로 다르게 잡은 후보이며, PC 내부 원인이라 공정 속성으로 묶이지 않는다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C7",
+      "signal": "type:error",
+      "pcs": [
+        "PC-C0143",
+        "PC-D0129",
+        "PC-D0146"
+      ],
+      "shared": {
+        "client_version": "2.4.0"
+      },
+      "meaningful": false,
+      "cause": "같은 클라이언트 버전 2.4.0이라는 속성은 서버 통신 지연과 라이선스 지연이라는 서로 다른 원인을 함께 설명하지 못해 우연한 묶음이다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C8",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 heartbeat 실패 사건을 클라이언트 버전 기준으로 다르게 잡은 후보이며, 원인을 더 직접 설명하는 C2를 대표로 둔다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}
