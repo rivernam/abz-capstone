@@ -5,3 +5,4 @@ java.lang.OutOfMemoryError,JVM 힙 메모리 부족,java 실행 인자 -Xmx 상�
 license check timeout,라이선스 서버 응답 지연,라이선스 서버 상태 확인,restart
 bind failed,포트 충돌,포트를 쓰는 다른 프로세스 확인,none
 heartbeat send failed,서버 통신 지연,네트워크 상태 확인,restart
+no network interface matches,설비망 IP 패턴 설정 오류,프록시 PC 설비망 대역에 맞게 internal_ip_pattern 수정 후 재시작,proxy_check_restart

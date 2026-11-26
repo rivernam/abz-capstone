@@ -4,13 +4,16 @@ version,key,default,allowed
 2.3.1,heartbeat.interval.sec,600,yes
 2.3.1,log.level,INFO,yes
 2.3.1,retry.count,3,yes
+2.3.1,internal.ip.pattern,,computed
 2.4.0,server_host,10.10.0.5,yes
 2.4.0,server_port,8443,yes
 2.4.0,heartbeat_interval_sec,600,yes
 2.4.0,log_level,INFO,yes
 2.4.0,retry_count,3,yes
+2.4.0,internal_ip_pattern,,computed
 2.4.2,server_host,10.10.0.5,yes
 2.4.2,server_port,8443,yes
 2.4.2,heartbeat_interval_sec,600,yes
 2.4.2,log_level,INFO,yes
 2.4.2,retry_count,3,yes
+2.4.2,internal_ip_pattern,,computed

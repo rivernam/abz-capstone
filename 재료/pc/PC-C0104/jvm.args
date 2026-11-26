@@ -1,1 +1,1 @@
--Xms256m -Xmx1024m -jar abz-client.jar
+-Xms256m -Xmx1024m -Dabz.proxy.host=192.168.2.14 -Dabz.proxy.port=3128 -jar abz-client.jar

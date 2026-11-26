@@ -54,9 +54,7 @@ def test_master_shape(world):
     assert all(r["ip"] and r["equipment_model"] for r in db.values())
     via = [r for r in db.values() if r["internal_ip"]]
     assert 0.25 <= len(via) / 300 <= 0.35                     # 설비망 PC는 약 30%
-    assert not set(ans["orphans"]) & set(db)
-    for pc, v in ans["ip_mismatch"].items():
-        assert db[pc]["ip"] == v["db_ip"] != v["log_ip"]
+    assert len({(r["ip"], r["internal_ip"]) for r in db.values()}) == 300        # 식별 키 (사내망 IP, 설비망 IP)는 유일
     combos = ans["proxy"]["combos"]
     kinds = {c["kind"]: c for c in combos.values()}
     assert db[kinds["direct"]["proxies"][0]]["internal_ip"] is None   # 직접 접속 프록시는 설비망 IP 미등록
@@ -68,35 +66,46 @@ def test_log_line_format(world):
     for day, rows in world["logs"].items():
         for r in rows:
             assert len(r) in (6, 7), r
-            assert r[2] in {"HEARTBEAT", "START", "STOP", "ERROR"}
+            assert r[2] in {"HEARTBEAT", "START", "STOP", "ERROR", "IDENTIFY_FAIL"}
             assert (len(r) == 7) == (r[2] == "ERROR")
+            assert (r[1] == "-") == (r[2] == "IDENTIFY_FAIL")
 
 
-def route_mismatch(db, rows):
-    """구현명세 §5 연결 경로 불일치 규칙(리포트 날짜 로그 기준)."""
-    registered_ips = {r["ip"] for r in db.values()}
-    addr = {}
-    for r in rows:
-        if r[1] in db:
-            addr[r[1]] = (r[4], r[5])
-    users = {}
-    for pc, (_, c) in addr.items():
-        users.setdefault(c, set()).add(pc)
-    out = set()
-    for pc, (rep, c) in addr.items():
-        if db[pc]["internal_ip"]:
-            if c not in registered_ips and c != rep:
-                out.add(pc)
-            elif c == rep and not (users[c] - {pc}):
-                out.add(pc)
-        elif c != rep:
-            out.add(pc)
-    return out
+def test_identification_is_consistent(world):
+    """서버는 (접속 주소, 설비망 IP)로 기준정보에서 PC를 찾는다. 기준정보 수정(11-24 23:30) 이후 로그로 확인."""
+    key = {(r["ip"], r["internal_ip"] or "-"): pc for pc, r in world["db"].items()}
+    fails = set()
+    for d in ("2026-11-25", "2026-11-26"):
+        for r in world["logs"][d]:
+            if r[2] == "IDENTIFY_FAIL":
+                assert (r[4], r[5]) not in key
+                fails.add((r[4], r[5]))
+            else:
+                assert key[(r[4], r[5])] == r[1]
+    assert fails == {(f["conn"], f["internal"]) for f in world["ans"]["identify_fail"]}
 
 
-def test_route_mismatch_matches_answer(world):
-    exp = {pc for v in world["ans"]["route_mismatch"].values() for pc in v}
-    assert route_mismatch(world["db"], world["logs"][D25]) == exp
+def identify_fail_reason(db, no_report, conn, internal):
+    """구현명세 §5 식별 실패 사유 규칙. (사유, 후보 PC 목록)을 돌려준다."""
+    same_internal = [pc for pc, r in db.items() if internal != "-" and r["internal_ip"] == internal]
+    if same_internal:
+        return "intranet_ip_typo", same_internal
+    same_ip = [pc for pc, r in db.items() if r["ip"] == conn]
+    if same_ip:
+        return "facility_ip_typo", sorted(set(same_ip) & no_report)
+    band = conn.rsplit(".", 1)[0] + "."
+    near = sorted(pc for pc in no_report if db[pc]["ip"].startswith(band) and (internal == "-") == (db[pc]["internal_ip"] is None))
+    return ("intranet_ip_typo", near) if near else ("unregistered", [])
+
+
+def test_identify_fail_reasons(world):
+    db, ans = world["db"], world["ans"]
+    no_report = {pc for pc, c in ans["anomalies"][D25].items() if "no_report" in c}
+    for f in ans["identify_fail"]:
+        reason, cands = identify_fail_reason(db, no_report, f["conn"], f["internal"])
+        assert reason == f["expected"], f
+        if f["pc_id"]:
+            assert f["pc_id"] in cands
 
 
 def anomalies(db, logs, day):
@@ -178,26 +187,33 @@ def test_jvm_proxy_args(world):
             assert f"{m.group(1)}:{m.group(2)}" != op["pcs"][pc]["expected_proxy"]
         elif r["internal_ip"]:
             assert m and m.group(2) == str(ans["proxy"]["port"])
+            props = (root / "재료" / "pc" / pc / "client.properties").read_text(encoding="utf-8")
+            assert key_name(r["client_version"], "internal_ip_pattern") in props
         else:
             assert m is None
 
 
-def test_proxy_is_computable_from_master_and_logs(world):
-    """ADR 0004: 마지막 성공 접속 주소 → 기준정보의 프록시 PC → 그 PC의 설비망 IP."""
-    db, op, logs = world["db"], world["op"], world["logs"]
-    by_ip = {r["ip"]: r for r in db.values()}
-    last = {}
-    for d in sorted(logs):
-        for r in logs[d]:
-            last[r[1]] = r[5]
-    for pc, h in op["pcs"].items():
-        if h["cause"] not in ("proxy_missing", "proxy_wrong", "proxy_uncomputable"):
+def proxy_by_peers(root, db, pc):
+    """ADR 0004: 같은 사내망 IP를 쓰는 실행 중 설비망 PC가 3대 이상이고 프록시 값이 모두 같으면 그 값."""
+    values = []
+    for peer, r in db.items():
+        if peer == pc or r["ip"] != db[pc]["ip"] or not r["internal_ip"]:
             continue
-        px = by_ip[last[pc]]
-        if h["cause"] == "proxy_uncomputable":
-            assert px["internal_ip"] is None
-        else:
-            assert f"{px['internal_ip']}:3128" == h["expected_proxy"]
+        d = root / "재료" / "pc" / peer
+        if json.loads((d / "service.json").read_text(encoding="utf-8"))["status"] != "running":
+            continue
+        m = re.search(r"-Dabz\.proxy\.host=(\S+) -Dabz\.proxy\.port=(\d+)", (d / "jvm.args").read_text(encoding="utf-8"))
+        values.append(f"{m.group(1)}:{m.group(2)}" if m else None)
+    return values[0] if len(values) >= 3 and len(set(values)) == 1 else None
+
+
+def test_proxy_is_computable_from_peers(world):
+    root, db, op = world["root"], world["db"], world["op"]
+    for pc, h in op["pcs"].items():
+        if h["cause"] in ("proxy_missing", "proxy_wrong", "pattern_mismatch"):
+            assert proxy_by_peers(root, db, pc) == h["expected_proxy"], pc
+        elif h["cause"] in ("proxy_uncomputable", "proxy_down"):
+            assert proxy_by_peers(root, db, pc) is None, pc
 
 
 def test_normalize():
@@ -213,8 +229,8 @@ def test_get_pc_info(world):
     r = get_pc_info("pc-a0101", db)
     assert r["found"] and r["pc_id"] == "PC-A0101" and r["normalized"] is True and "equipment_model" in r
     assert get_pc_info("PC-A0101", db)["normalized"] is False
-    missing = get_pc_info(ans["orphans"][0], db)
-    assert missing == {"found": False, "input_id": ans["orphans"][0], "pc_id": ans["orphans"][0], "reason": "not_registered"}
+    missing = get_pc_info("PC-C0199", db)
+    assert missing == {"found": False, "input_id": "PC-C0199", "pc_id": "PC-C0199", "reason": "not_registered"}
     assert get_pc_info("abc", db)["reason"] == "invalid_format"
-    pc = next(iter(ans["ip_mismatch"]))
-    assert get_pc_info(pc, db)["ip"] == ans["ip_mismatch"][pc]["db_ip"]
+    typo = next(f for f in ans["identify_fail"] if f["expected"] == "intranet_ip_typo")
+    assert get_pc_info(typo["pc_id"], db)["ip"] == typo["db_ip"]

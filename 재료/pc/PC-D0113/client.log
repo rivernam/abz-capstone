@@ -1,1 +1,4 @@
 2026-11-20 08:00:00 INFO client started version=2.4.0
+2026-11-25 10:02:39 ERROR connection refused: 192.168.3.69:3128
+2026-11-26 05:02:06 ERROR connection refused: 192.168.3.69:3128
+2026-11-26 05:02:07 INFO client stopped (fatal)

@@ -31,9 +31,10 @@ SERVER_HOST, SERVER_PORT, PROXY_PORT = "10.10.0.5", 8443, 3128
 # 설비망을 쓰는 (공정, 설비 모델) 조합과 프록시 구성 방식
 #   self   : 프록시 PC 하나가 설비망 IP를 등록하고 자기 자신을 거친다.
 #   direct : 프록시 PC가 사내망 IP만 등록하고 직접 접속한다(프록시 값을 계산할 수 없음).
-#   split  : 예외 조합. 프록시 PC 두 대가 나눠 맡는다(두 번째 프록시는 5대만 맡음).
+#   split  : 예외 조합. 프록시 PC 세 대가 나눠 맡는다(두 번째는 5대, 세 번째는 2대만 맡음).
 PROXY_COMBOS = {("ETCH", "ET-300"): "self", ("DEPO", "DP-300"): "direct", ("LITHO", "LT-700"): "split"}
-SPLIT_MINOR = 5
+SPLIT_MINOR, SPLIT_TINY = 5, 2
+TYPO = 100                                     # 기준정보 오입력 재현: 마지막 옥텟에 100을 더한다(쓰지 않는 주소)
 
 # (message_pattern, cause, recommended_action, auto_action)
 PATTERNS = [
@@ -43,6 +44,7 @@ PATTERNS = [
     ("license check timeout", "라이선스 서버 응답 지연", "라이선스 서버 상태 확인", "restart"),
     ("bind failed", "포트 충돌", "포트를 쓰는 다른 프로세스 확인", "none"),
     ("heartbeat send failed", "서버 통신 지연", "네트워크 상태 확인", "restart"),
+    ("no network interface matches", "설비망 IP 패턴 설정 오류", "프록시 PC 설비망 대역에 맞게 internal_ip_pattern 수정 후 재시작", "proxy_check_restart"),
 ]
 # 설정 키(표준 이름, 기본값). 2.3.1은 점 표기, 2.4.x는 밑줄 표기를 쓴다.
 CONFIG_KEYS = [("server_host", SERVER_HOST), ("server_port", str(SERVER_PORT)),
@@ -77,13 +79,15 @@ def match_pattern(message):
     return None
 
 
-def swap_digits(ip):
-    """기준정보 오입력 재현: 마지막 옥텟의 숫자 순서를 바꾼다."""
+def typo(ip):
+    """기준정보 오입력 재현: 마지막 옥텟을 쓰지 않는 값으로 바꾼다."""
     head, last = ip.rsplit(".", 1)
-    flipped = last[::-1]
-    if flipped == last:
-        flipped = str(int(last) + 1)
-    return f"{head}.{flipped}"
+    return f"{head}.{int(last) + TYPO}"
+
+
+def ip_pattern(ip):
+    """설치 프로그램이 프록시 PC 설비망 IP로 만드는 대역 패턴."""
+    return ip.rsplit(".", 1)[0] + ".[0-9]+"
 
 
 def t(day, hh, mm, ss=0):
@@ -120,14 +124,20 @@ def generate(root=None):
     for (proc, model), kind in PROXY_COMBOS.items():
         members = sorted(p["pc_id"] for p in pcs if p["process"] == proc and p["equipment_model"] == model)
         rng.shuffle(members)
-        proxies = [members[0]] if kind != "split" else [members[0], members[1]]
+        proxies = [members[0]] if kind != "split" else members[:3]
         for pc in members:
             by_pc[pc]["internal_ip"] = by_pc[pc]["phys_internal"]
         assign = {}
         if kind == "split":
-            minor = members[2:2 + SPLIT_MINOR]
+            minor = set(members[3:3 + SPLIT_MINOR])
+            tiny = set(members[3 + SPLIT_MINOR:3 + SPLIT_MINOR + SPLIT_TINY])
             for pc in members:
-                assign[pc] = proxies[1] if (pc == proxies[1] or pc in minor) else proxies[0]
+                if pc == proxies[1] or pc in minor:
+                    assign[pc] = proxies[1]
+                elif pc == proxies[2] or pc in tiny:
+                    assign[pc] = proxies[2]
+                else:
+                    assign[pc] = proxies[0]
         else:
             for pc in members:
                 assign[pc] = proxies[0]
@@ -139,6 +149,10 @@ def generate(root=None):
             route[pc] = px
         combos[f"{proc}/{model}"] = {"kind": kind, "proxies": proxies, "members": sorted(members)}
     proxy_pcs = {px for c in combos.values() for px in c["proxies"]}
+    # 서버는 접속 주소를 사내망 IP로 보므로, 프록시를 거치는 PC의 기준정보 사내망 IP는 프록시 PC의 사내망 IP다.
+    for pc, px in proxy_of.items():
+        by_pc[pc]["ip"] = real_ip[px]
+    has_pattern = set(proxy_of)                            # 설치 때 프록시 설비망 IP를 입력한 PC
 
     def proxy_value(pc):
         px = proxy_of[pc]
@@ -161,23 +175,24 @@ def generate(root=None):
     self_combo = next(k for k, c in combos.items() if c["kind"] == "self")
     direct_combo = next(k for k, c in combos.items() if c["kind"] == "direct")
     split_combo = next(k for k, c in combos.items() if c["kind"] == "split")
-    split_major, split_minor_px = combos[split_combo]["proxies"]
+    split_major, split_minor_px, split_tiny_px = combos[split_combo]["proxies"]
     split_minor = sorted(pc for pc, px in proxy_of.items() if px == split_minor_px and pc != split_minor_px)
+    split_tiny = sorted(pc for pc, px in proxy_of.items() if px == split_tiny_px and pc != split_tiny_px)
 
-    for pc in split_minor:                                 # 프록시 장애 묶음 대상은 따로 둔다
+    for pc in split_minor + split_tiny:                    # 프록시 장애 묶음, 소규모 그룹은 따로 둔다
         if pc in pool:
             pool.remove(pc)
     sc = {
         # 제약이 있는 시나리오부터 고른다
         "cluster_license": take(4, lambda pc: direct(pc) and by_pc[pc]["client_version"] == "2.3.1"),
         "cluster_coincidental": take(3, lambda pc: direct(pc) and by_pc[pc]["process"] == "TEST"),
-        "route_bypass": take(1, lambda pc: combo_of.get(pc) == self_combo),
-        "route_unknown_source": take(1, direct),
-        "ip_mismatch": take(4, direct),
+        "identify_intranet_typo": take(1, direct) + take(1, lambda pc: combo_of.get(pc) == self_combo),
+        "identify_facility_typo": take(1, lambda pc: combo_of.get(pc) == direct_combo),
         "op_proxy_missing": take(2, lambda pc: combo_of.get(pc) == self_combo),
         "op_proxy_wrong": take(1, lambda pc: combo_of.get(pc) == self_combo),
-        "op_proxy_uncomputable": take(1, lambda pc: combo_of.get(pc) == direct_combo),
+        "op_proxy_missing_direct_proxy": take(1, lambda pc: combo_of.get(pc) == direct_combo),
         "op_proxy_split_major": take(1, lambda pc: proxy_of.get(pc) == split_major),
+        "op_pattern_mismatch": take(1, lambda pc: combo_of.get(pc) == self_combo),
         # 일반 시나리오
         "gap_day": take(5), "gap_midnight": take(2), "restart_loop": take(4),
         "error_only": take(6), "error_gap": take(2), "no_report": take(5),
@@ -190,10 +205,9 @@ def generate(root=None):
         sc["op_config"][-1] = take(1, lambda pc: by_pc[pc]["client_version"] == "2.3.1")[0]
     sc["cluster_proxy_down"] = [split_minor_px] + split_minor
     sc["op_proxy_down"] = [split_minor[0]]
-    orphans = [
-        {"pc_id": "PC-C0199", "ip": "10.22.9.99", "client_version": "2.4.0"},
-        {"pc_id": "PC-D0198", "ip": "10.23.9.98", "client_version": "2.3.1"},
-    ]
+    sc["op_proxy_uncomputable"] = [split_tiny[0]]          # 같은 사내망 IP를 쓰는 정상 PC가 3대 미만
+    # 기준정보에 없는 새 PC(설치만 되고 등록 안 됨). 클라이언트는 PC ID를 모르므로 IP만 남는다.
+    orphans = [{"label": "UNREGISTERED-1", "ip": "10.22.9.99", "internal": None, "client_version": "2.4.0"}]
 
     # ---- 4. 사건 계획 ----
     cats = {D24: {}, D25: {}}
@@ -201,9 +215,7 @@ def generate(root=None):
     def mark(day, pc, cat):
         cats[day].setdefault(pc, set()).add(cat)
 
-    plans = {pc: {"skip": [], "extra": [], "cut": None, "client": []} for pc in by_pc}
-    for o in orphans:
-        plans[o["pc_id"]] = {"skip": [], "extra": [], "cut": None, "client": []}
+    plans = {pc: {"skip": [], "extra": [], "cut": None, "client": [], "fails": []} for pc in by_pc}
 
     def err(pc, at, msg, day):
         plans[pc]["extra"].append((at, "ERROR", msg))
@@ -293,7 +305,8 @@ def generate(root=None):
     stop_with(sc["op_bind"][0], at26(), "bind", server_msg=STD_MESSAGES["bind failed"], restart_succeeds_if="never")
 
     jvm_override = {}
-    for pc in sc["op_proxy_missing"] + sc["op_proxy_uncomputable"] + sc["op_proxy_split_major"]:
+    for pc in (sc["op_proxy_missing"] + sc["op_proxy_missing_direct_proxy"] + sc["op_proxy_split_major"]
+               + sc["op_proxy_uncomputable"]):
         jvm_override[pc] = None
         cause = "proxy_uncomputable" if pc in sc["op_proxy_uncomputable"] else "proxy_missing"
         stop_with(pc, at26(), cause, client_msg=STD_MESSAGES["connection refused"],
@@ -303,6 +316,14 @@ def generate(root=None):
         jvm_override[pc] = wrong
         stop_with(pc, at26(), "proxy_wrong", client_msg=f"connection refused: {wrong}",
                   expected_proxy=proxy_value(pc), restart_succeeds_if="jvm_proxy_correct")
+    pattern_override = {}
+    for pc in sc["op_pattern_mismatch"]:
+        bad = ip_pattern(f"192.168.9.1")
+        pattern_override[pc] = bad
+        name = key_name(by_pc[pc]["client_version"], "internal_ip_pattern")
+        stop_with(pc, at26(), "pattern_mismatch", client_msg=f"no network interface matches {name}={bad}",
+                  config_key=name, bad_value=bad, expected_pattern=ip_pattern(by_pc[proxy_of[pc]]["phys_internal"]),
+                  expected_proxy=proxy_value(pc), restart_succeeds_if="pattern_correct")
     # 프록시 PC 장애가 다시 나서 지속 중: 프록시와 그 프록시를 쓰는 PC가 모두 멈춘다.
     down_at = t(D26, 5, 0)
     plans[split_minor_px]["cut"] = down_at
@@ -326,18 +347,40 @@ def generate(root=None):
         else:
             hidden[pc] = {"cause": "log_missing", "restart_succeeds_if": "always"}
 
+    # 식별 실패: 11-24 저녁에 기준정보가 잘못 수정되었고, 23:30에 클라이언트를 재시작한 뒤로 식별에 실패한다.
+    edit_at = t(D24, 23, 30)
+    fail_tries = [edit_at + timedelta(minutes=1), t(D25, 8, 10, 4), t(D25, 13, 40, 31)]
+    identify_fail = []
+    for pc in sc["identify_intranet_typo"] + sc["identify_facility_typo"]:
+        plans[pc]["cut"] = edit_at
+        plans[pc]["extra"].append((edit_at, "STOP", ""))
+        plans[pc]["fails"] = fail_tries
+        plans[pc]["client"] += [(ts + timedelta(seconds=2), "ERROR", "identification failed: PC not found on server")
+                                for ts in fail_tries]
+        mark(D25, pc, "no_report")
+        hidden[pc] = {"cause": "identify_fail", "stopped_at": f"{fail_tries[-1]:%Y-%m-%d %H:%M:%S}",
+                      "error_message": "identification failed: PC not found on server", "restart_succeeds_if": "never"}
+    facility_typo = {}
+    intranet_typo = {}
+    for pc in sc["identify_intranet_typo"]:
+        intranet_typo[pc] = typo(by_pc[pc]["ip"])
+    for pc in sc["identify_facility_typo"]:
+        facility_typo[pc] = typo(by_pc[pc]["internal_ip"])
+
     # ---- 6. 서버 실행 로그 ----
     conn_addr = {pc: real_ip[route[pc]] for pc in by_pc}
-    conn_addr[sc["route_bypass"][0]] = real_ip[sc["route_bypass"][0]]       # 프록시를 거치지 않음
-    conn_addr[sc["route_unknown_source"][0]] = "10.99.0.7"                    # 알 수 없는 경로
-    for o in orphans:
-        conn_addr[o["pc_id"]] = o["ip"]
+    reported_internal = {pc: (by_pc[pc]["phys_internal"] if pc in has_pattern else "-") for pc in by_pc}
     n_slots = int((END - START) / SLOT)
     lines = []
-    all_pcs = [(p["pc_id"], p["client_version"], p["ip"]) for p in pcs] + \
-              [(o["pc_id"], o["client_version"], o["ip"]) for o in orphans]
-    for pc, ver, ip in all_pcs:
+
+    def fail_line(ts, ver, conn, internal):
+        return (ts, "~", f"{ts:%Y-%m-%d %H:%M:%S} | - | IDENTIFY_FAIL | {ver} | {conn} | {internal}")
+
+    for p in pcs:
+        pc, ver = p["pc_id"], p["client_version"]
         plan = plans[pc]
+        for ts in plan["fails"]:
+            lines.append(fail_line(ts, ver, conn_addr[pc], reported_internal[pc]))
         events = []
         for k in range(n_slots):
             slot = START + k * SLOT
@@ -351,8 +394,12 @@ def generate(root=None):
         for ts, ev, msg in events:
             if ts >= END:
                 continue
-            text = f"{ts:%Y-%m-%d %H:%M:%S} | {pc} | {ev} | {ver} | {ip} | {conn_addr[pc]}" + (f" | {msg}" if msg else "")
+            text = f"{ts:%Y-%m-%d %H:%M:%S} | {pc} | {ev} | {ver} | {conn_addr[pc]} | {reported_internal[pc]}" + \
+                (f" | {msg}" if msg else "")
             lines.append((ts, pc, text))
+    for o in orphans:                                      # 설치 직후부터 계속 식별 실패
+        for ts in [t(D25, 9, 0, 12), t(D25, 9, 30, 40), t(D25, 13, 10, 5), t(D26, 7, 0, 9)]:
+            lines.append(fail_line(ts, o["client_version"], o["ip"], o["internal"] or "-"))
     lines.sort(key=lambda x: (x[0], x[1]))
     log_dir = material / "서버로그"
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -373,14 +420,17 @@ def generate(root=None):
         d = pc_root / pc
         (d / "backup").mkdir(parents=True)
         conf = {key_name(ver, k): v for k, v in CONFIG_KEYS}
+        if pc in has_pattern:
+            conf[key_name(ver, "internal_ip_pattern")] = pattern_override.get(
+                pc, ip_pattern(by_pc[proxy_of[pc]]["phys_internal"]))
         if pc in config_override:
             name, value = config_override[pc]
             conf[name] = value
         (d / "client.properties").write_text(f"# ABZ client {ver}\n" + "".join(f"{k}={v}\n" for k, v in conf.items()),
                                              encoding="utf-8")
         args = ["-Xms256m", "-Xmx1024m"]
-        if pc in proxy_of or pc in proxy_pcs and by_pc[pc]["internal_ip"]:
-            value = jvm_override.get(pc, proxy_value(pc) if pc in proxy_of else f"{p['phys_internal']}:{PROXY_PORT}")
+        if pc in proxy_of:
+            value = jvm_override.get(pc, proxy_value(pc))
             if value:
                 host, port = value.rsplit(":", 1)
                 args += [f"-Dabz.proxy.host={host}", f"-Dabz.proxy.port={port}"]
@@ -405,10 +455,16 @@ def generate(root=None):
                                               if ts < END), encoding="utf-8")
 
     # ---- 8. 기준정보 DB (오입력 IP 반영) ----
-    wrong_db_ip = {}
-    for pc in sc["ip_mismatch"]:
-        wrong_db_ip[pc] = {"db_ip": swap_digits(by_pc[pc]["ip"]), "log_ip": by_pc[pc]["ip"]}
-        by_pc[pc]["ip"] = wrong_db_ip[pc]["db_ip"]
+    for pc, v in intranet_typo.items():
+        identify_fail.append({"conn": conn_addr[pc], "internal": reported_internal[pc], "expected": "intranet_ip_typo",
+                              "pc_id": pc, "db_ip": v})
+        by_pc[pc]["ip"] = v
+    for pc, v in facility_typo.items():
+        identify_fail.append({"conn": conn_addr[pc], "internal": reported_internal[pc], "expected": "facility_ip_typo",
+                              "pc_id": pc, "db_internal_ip": v})
+        by_pc[pc]["internal_ip"] = v
+    for o in orphans:
+        identify_fail.append({"conn": o["ip"], "internal": o["internal"] or "-", "expected": "unregistered", "pc_id": None})
     db_dir = material / "db"
     db_dir.mkdir(parents=True, exist_ok=True)
     db_path = db_dir / "기준정보.sqlite"
@@ -435,6 +491,7 @@ def generate(root=None):
         for ver in VERSIONS:
             for k, v in CONFIG_KEYS:
                 w.writerow([ver, key_name(ver, k), v, "yes"])
+            w.writerow([ver, key_name(ver, "internal_ip_pattern"), "", "computed"])   # 프록시 설비망 대역에서 계산
 
     # ---- 10. 정답 자료 ----
     rec = root / "기록"
@@ -442,15 +499,13 @@ def generate(root=None):
     seen = {}
     for _, _, text in lines:
         parts = text.split(" | ")
-        if parts[2] == "ERROR" and parts[0] < "2026-11-26" and not parts[6].startswith(tuple(p for p, *_ in PATTERNS)):
+        if parts[2] == "ERROR" and parts[0] < D26 and not parts[6].startswith(tuple(p for p, *_ in PATTERNS)):
             seen[parts[6]] = VARIANT_MESSAGES.get(parts[6], "NEW")
     answer = {
         "seed": SEED, "report_date": D25, "total_pcs_in_db": len(pcs),
         "anomalies": {d: {pc: sorted(c) for pc, c in sorted(m.items())} for d, m in cats.items()},
         "scenarios": {k: sorted(v) for k, v in sc.items() if not k.startswith("op_")},
-        "orphans": [o["pc_id"] for o in orphans],
-        "ip_mismatch": wrong_db_ip,
-        "route_mismatch": {"bypass": sc["route_bypass"], "unknown_source": sc["route_unknown_source"]},
+        "identify_fail": identify_fail,
         "error_classification": dict(sorted(seen.items())),
         "clusters": {
             "true": [
@@ -480,5 +535,5 @@ if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     a = generate()
     print("PC", a["total_pcs_in_db"], "| 2026-11-25 이상 PC", len(a["anomalies"][D25]),
-          "| 미등록", a["orphans"], "| IP 오입력", len(a["ip_mismatch"]),
+          "| 식별 실패", len(a["identify_fail"]),
           "| 설비망 조합", list(a["proxy"]["combos"]))

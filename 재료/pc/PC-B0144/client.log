@@ -1,3 +1,5 @@
 2026-11-20 08:00:00 INFO client started version=2.4.0
-2026-11-24 23:55:10 INFO client stopped
-2026-11-25 00:03:20 INFO client started version=2.4.0
+2026-11-24 23:30:00 INFO client stopped
+2026-11-24 23:31:02 ERROR identification failed: PC not found on server
+2026-11-25 08:10:06 ERROR identification failed: PC not found on server
+2026-11-25 13:40:33 ERROR identification failed: PC not found on server
