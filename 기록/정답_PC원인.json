@@ -1,0 +1,207 @@
+{
+  "note": "아이템 ② 채점과 가상 재시작 전용. 에이전트 Tool로 읽지 않는다.",
+  "scenarios": {
+    "op_proxy_missing": [
+      "PC-A0122",
+      "PC-A0123"
+    ],
+    "op_proxy_wrong": [
+      "PC-A0146"
+    ],
+    "op_proxy_uncomputable": [
+      "PC-C0104"
+    ],
+    "op_proxy_split_major": [
+      "PC-D0156"
+    ],
+    "op_config": [
+      "PC-A0148",
+      "PC-C0102",
+      "PC-E0119"
+    ],
+    "op_transient": [
+      "PC-A0152",
+      "PC-C0134",
+      "PC-E0137"
+    ],
+    "op_server_down": [
+      "PC-A0113"
+    ],
+    "op_oom": [
+      "PC-D0132"
+    ],
+    "op_bind": [
+      "PC-D0143"
+    ],
+    "op_proxy_down": [
+      "PC-D0115"
+    ]
+  },
+  "pcs": {
+    "PC-A0104": {
+      "cause": "log_missing",
+      "restart_succeeds_if": "always"
+    },
+    "PC-A0113": {
+      "cause": "server_down",
+      "stopped_at": "2026-11-26 06:13:27",
+      "error_message": "connection refused: 10.10.0.5:8443",
+      "restart_succeeds_if": "never"
+    },
+    "PC-A0122": {
+      "cause": "proxy_missing",
+      "stopped_at": "2026-11-26 04:01:11",
+      "error_message": "connection refused: 10.10.0.5:8443",
+      "expected_proxy": "192.168.0.24:3128",
+      "restart_succeeds_if": "jvm_proxy_correct"
+    },
+    "PC-A0123": {
+      "cause": "proxy_missing",
+      "stopped_at": "2026-11-26 03:01:01",
+      "error_message": "connection refused: 10.10.0.5:8443",
+      "expected_proxy": "192.168.0.24:3128",
+      "restart_succeeds_if": "jvm_proxy_correct"
+    },
+    "PC-A0146": {
+      "cause": "proxy_wrong",
+      "stopped_at": "2026-11-26 02:23:19",
+      "error_message": "connection refused: 192.168.0.250:3128",
+      "expected_proxy": "192.168.0.24:3128",
+      "restart_succeeds_if": "jvm_proxy_correct"
+    },
+    "PC-A0148": {
+      "cause": "config",
+      "stopped_at": "2026-11-26 06:09:17",
+      "error_message": "config parse failed: key=retry_count value=-",
+      "config_key": "retry_count",
+      "bad_value": "-",
+      "restart_succeeds_if": "config_key_restored"
+    },
+    "PC-A0152": {
+      "cause": "transient",
+      "stopped_at": "2026-11-26 06:31:27",
+      "error_message": "heartbeat send failed: timeout",
+      "restart_succeeds_if": "always"
+    },
+    "PC-C0101": {
+      "cause": "not_running",
+      "stopped_at": "2026-11-24 23:58:00",
+      "restart_succeeds_if": "always"
+    },
+    "PC-C0102": {
+      "cause": "config",
+      "stopped_at": "2026-11-26 03:58:34",
+      "error_message": "config parse failed: key=heartbeat.interval.sec value=abc",
+      "config_key": "heartbeat.interval.sec",
+      "bad_value": "abc",
+      "restart_succeeds_if": "config_key_restored"
+    },
+    "PC-C0104": {
+      "cause": "proxy_uncomputable",
+      "stopped_at": "2026-11-26 05:20:48",
+      "error_message": "connection refused: 10.10.0.5:8443",
+      "expected_proxy": "192.168.2.14:3128",
+      "restart_succeeds_if": "jvm_proxy_correct"
+    },
+    "PC-C0134": {
+      "cause": "transient",
+      "stopped_at": "2026-11-26 03:55:16",
+      "error_message": "license check timeout after 30s",
+      "restart_succeeds_if": "always"
+    },
+    "PC-D0115": {
+      "cause": "proxy_down",
+      "stopped_at": "2026-11-26 05:02:04",
+      "proxy_pc": "PC-D0160",
+      "error_message": "connection refused: 192.168.3.69:3128",
+      "expected_proxy": "192.168.3.69:3128",
+      "restart_succeeds_if": "never"
+    },
+    "PC-D0116": {
+      "cause": "proxy_down",
+      "stopped_at": "2026-11-26 05:02:07",
+      "proxy_pc": "PC-D0160",
+      "error_message": "connection refused: 192.168.3.69:3128",
+      "expected_proxy": "192.168.3.69:3128",
+      "restart_succeeds_if": "never"
+    },
+    "PC-D0122": {
+      "cause": "proxy_down",
+      "stopped_at": "2026-11-26 05:02:01",
+      "proxy_pc": "PC-D0160",
+      "error_message": "connection refused: 192.168.3.69:3128",
+      "expected_proxy": "192.168.3.69:3128",
+      "restart_succeeds_if": "never"
+    },
+    "PC-D0130": {
+      "cause": "not_running",
+      "stopped_at": "2026-11-24 23:58:00",
+      "restart_succeeds_if": "always"
+    },
+    "PC-D0132": {
+      "cause": "oom",
+      "stopped_at": "2026-11-26 01:00:09",
+      "error_message": "java.lang.OutOfMemoryError: Java heap space",
+      "restart_succeeds_if": "never"
+    },
+    "PC-D0136": {
+      "cause": "proxy_down",
+      "stopped_at": "2026-11-26 05:02:10",
+      "proxy_pc": "PC-D0160",
+      "error_message": "connection refused: 192.168.3.69:3128",
+      "expected_proxy": "192.168.3.69:3128",
+      "restart_succeeds_if": "never"
+    },
+    "PC-D0141": {
+      "cause": "proxy_down",
+      "stopped_at": "2026-11-26 05:02:21",
+      "proxy_pc": "PC-D0160",
+      "error_message": "connection refused: 192.168.3.69:3128",
+      "expected_proxy": "192.168.3.69:3128",
+      "restart_succeeds_if": "never"
+    },
+    "PC-D0143": {
+      "cause": "bind",
+      "stopped_at": "2026-11-26 01:28:45",
+      "error_message": "bind failed: port 8443 already in use",
+      "restart_succeeds_if": "never"
+    },
+    "PC-D0156": {
+      "cause": "proxy_missing",
+      "stopped_at": "2026-11-26 01:15:22",
+      "error_message": "connection refused: 10.10.0.5:8443",
+      "expected_proxy": "192.168.3.66:3128",
+      "restart_succeeds_if": "jvm_proxy_correct"
+    },
+    "PC-D0160": {
+      "cause": "oom",
+      "stopped_at": "2026-11-26 05:00:00",
+      "is_proxy": true,
+      "error_message": "java.lang.OutOfMemoryError: Java heap space",
+      "restart_succeeds_if": "never"
+    },
+    "PC-E0101": {
+      "cause": "log_missing",
+      "restart_succeeds_if": "always"
+    },
+    "PC-E0119": {
+      "cause": "config",
+      "stopped_at": "2026-11-26 03:33:48",
+      "error_message": "config parse failed: key=server_port value=84a3",
+      "config_key": "server_port",
+      "bad_value": "84a3",
+      "restart_succeeds_if": "config_key_restored"
+    },
+    "PC-E0137": {
+      "cause": "transient",
+      "stopped_at": "2026-11-26 02:49:33",
+      "error_message": "connection refused: 10.10.0.5:8443",
+      "restart_succeeds_if": "always"
+    },
+    "PC-E0158": {
+      "cause": "not_running",
+      "stopped_at": "2026-11-24 23:58:00",
+      "restart_succeeds_if": "always"
+    }
+  }
+}

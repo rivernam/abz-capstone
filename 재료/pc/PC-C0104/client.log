@@ -1,0 +1,4 @@
+2026-11-20 08:00:00 INFO client started version=2.4.2
+2026-11-26 05:20:48 INFO client stopped
+2026-11-26 05:21:18 ERROR connection refused: 10.10.0.5:8443
+2026-11-26 05:21:19 INFO client stopped (fatal)

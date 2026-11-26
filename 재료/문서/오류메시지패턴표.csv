@@ -1,7 +1,7 @@
-message_pattern,cause,recommended_action,auto_fixable
-connection refused,서버 접속 거부(서버 주소나 방화벽 문제),"server_host 확인, 서버 상태 확인",no
-config parse failed,클라이언트 설정 값 오류,해당 설정 키를 기본값으로 복구하고 서비스 재시작,yes
-java.lang.OutOfMemoryError,JVM 힙 메모리 부족,java 실행 인자 -Xmx 상향 검토(운영자 확인),no
-license check timeout,라이선스 서버 응답 지연,라이선스 서버 상태 확인,no
-bind failed,포트 충돌,포트를 쓰는 다른 프로세스 확인,no
-heartbeat send failed,서버 통신 지연,네트워크 상태 확인,no
+message_pattern,cause,recommended_action,auto_action
+connection refused,"서버 접속 거부(서버 주소, 방화벽, 프록시 문제)","server_host와 프록시 인자 확인, 서버 상태 확인",proxy_check_restart
+config parse failed,클라이언트 설정 값 오류,해당 설정 키를 기본값으로 복구하고 서비스 재시작,config_reset_restart
+java.lang.OutOfMemoryError,JVM 힙 메모리 부족,java 실행 인자 -Xmx 상향 검토(운영자 확인),none
+license check timeout,라이선스 서버 응답 지연,라이선스 서버 상태 확인,restart
+bind failed,포트 충돌,포트를 쓰는 다른 프로세스 확인,none
+heartbeat send failed,서버 통신 지연,네트워크 상태 확인,restart

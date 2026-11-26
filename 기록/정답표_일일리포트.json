@@ -4,158 +4,227 @@
   "total_pcs_in_db": 300,
   "anomalies": {
     "2026-11-24": {
-      "PC-A0103": [
+      "PC-B0107": [
         "error"
       ],
-      "PC-B0154": [
+      "PC-B0110": [
         "error"
       ],
-      "PC-C0115": [
+      "PC-B0113": [
         "error"
       ],
-      "PC-E0116": [
+      "PC-C0114": [
         "error"
       ],
-      "PC-E0125": [
+      "PC-C0143": [
         "error"
       ]
     },
     "2026-11-25": {
-      "PC-A0101": [
-        "error"
-      ],
-      "PC-A0107": [
+      "PC-A0104": [
         "no_report"
       ],
       "PC-A0118": [
+        "error"
+      ],
+      "PC-B0109": [
+        "error"
+      ],
+      "PC-B0112": [
+        "heartbeat_gap"
+      ],
+      "PC-B0117": [
+        "heartbeat_gap"
+      ],
+      "PC-B0120": [
+        "error"
+      ],
+      "PC-B0121": [
         "restart_loop"
       ],
-      "PC-A0132": [
+      "PC-B0124": [
         "heartbeat_gap"
       ],
-      "PC-A0139": [
-        "heartbeat_gap"
+      "PC-B0149": [
+        "error"
       ],
-      "PC-A0150": [
-        "heartbeat_gap"
-      ],
-      "PC-A0153": [
+      "PC-C0101": [
         "no_report"
       ],
-      "PC-B0115": [
+      "PC-C0107": [
+        "error"
+      ],
+      "PC-C0110": [
+        "error"
+      ],
+      "PC-C0114": [
+        "error"
+      ],
+      "PC-C0121": [
         "restart_loop"
       ],
-      "PC-C0102": [
-        "heartbeat_gap"
-      ],
-      "PC-C0105": [
-        "restart_loop"
-      ],
-      "PC-C0108": [
-        "heartbeat_gap"
-      ],
-      "PC-C0115": [
+      "PC-C0126": [
         "error"
       ],
-      "PC-C0118": [
+      "PC-C0143": [
         "error"
       ],
-      "PC-C0119": [
-        "error"
-      ],
-      "PC-C0125": [
-        "error"
-      ],
-      "PC-C0138": [
-        "heartbeat_gap"
-      ],
-      "PC-C0148": [
-        "no_report"
-      ],
-      "PC-D0106": [
+      "PC-D0115": [
         "error",
         "heartbeat_gap"
       ],
-      "PC-D0113": [
-        "restart_loop"
-      ],
       "PC-D0116": [
+        "error",
         "heartbeat_gap"
       ],
-      "PC-D0123": [
+      "PC-D0121": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-D0122": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-D0127": [
+        "heartbeat_gap"
+      ],
+      "PC-D0128": [
+        "restart_loop"
+      ],
+      "PC-D0130": [
+        "no_report"
+      ],
+      "PC-D0136": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-D0141": [
         "error",
         "heartbeat_gap"
       ],
       "PC-D0148": [
-        "no_report"
-      ],
-      "PC-E0116": [
         "error"
       ],
-      "PC-E0119": [
+      "PC-D0158": [
+        "restart_loop"
+      ],
+      "PC-D0160": [
+        "heartbeat_gap"
+      ],
+      "PC-E0101": [
+        "no_report"
+      ],
+      "PC-E0115": [
+        "error",
+        "heartbeat_gap"
+      ],
+      "PC-E0121": [
+        "error"
+      ],
+      "PC-E0130": [
+        "heartbeat_gap"
+      ],
+      "PC-E0133": [
+        "heartbeat_gap"
+      ],
+      "PC-E0135": [
+        "error"
+      ],
+      "PC-E0139": [
+        "heartbeat_gap"
+      ],
+      "PC-E0141": [
+        "error"
+      ],
+      "PC-E0158": [
         "no_report"
       ]
     }
   },
   "scenarios": {
-    "gap_day": [
-      "PC-A0132",
-      "PC-C0102",
-      "PC-C0108",
-      "PC-C0138",
-      "PC-D0116"
-    ],
-    "gap_midnight": [
-      "PC-A0139",
-      "PC-A0150"
-    ],
-    "restart_loop": [
+    "cluster_license": [
       "PC-A0118",
-      "PC-B0115",
-      "PC-C0105",
-      "PC-D0113"
+      "PC-B0109",
+      "PC-B0149",
+      "PC-D0148"
     ],
-    "error_only": [
-      "PC-A0101",
-      "PC-C0115",
-      "PC-C0118",
-      "PC-C0119",
-      "PC-C0125",
-      "PC-E0116"
+    "cluster_coincidental": [
+      "PC-E0121",
+      "PC-E0135",
+      "PC-E0141"
     ],
-    "error_gap": [
-      "PC-D0106",
-      "PC-D0123"
+    "route_bypass": [
+      "PC-A0160"
     ],
-    "no_report": [
-      "PC-A0107",
-      "PC-A0153",
-      "PC-C0148",
-      "PC-D0148",
-      "PC-E0119"
+    "route_unknown_source": [
+      "PC-C0115"
     ],
     "ip_mismatch": [
-      "PC-A0113",
-      "PC-D0122",
-      "PC-E0121",
-      "PC-E0128"
+      "PC-B0154",
+      "PC-C0130",
+      "PC-C0154",
+      "PC-D0118"
+    ],
+    "gap_day": [
+      "PC-B0112",
+      "PC-B0117",
+      "PC-D0127",
+      "PC-E0133",
+      "PC-E0139"
+    ],
+    "gap_midnight": [
+      "PC-B0124",
+      "PC-E0130"
+    ],
+    "restart_loop": [
+      "PC-B0121",
+      "PC-C0121",
+      "PC-D0128",
+      "PC-D0158"
+    ],
+    "error_only": [
+      "PC-B0120",
+      "PC-C0107",
+      "PC-C0110",
+      "PC-C0114",
+      "PC-C0126",
+      "PC-C0143"
+    ],
+    "error_gap": [
+      "PC-D0121",
+      "PC-E0115"
+    ],
+    "no_report": [
+      "PC-A0104",
+      "PC-C0101",
+      "PC-D0130",
+      "PC-E0101",
+      "PC-E0158"
     ],
     "planned_restart_midnight": [
-      "PC-A0136",
-      "PC-A0160",
+      "PC-A0140",
       "PC-B0127",
-      "PC-B0130",
-      "PC-B0133",
-      "PC-C0113",
-      "PC-C0136",
-      "PC-D0107",
-      "PC-D0112",
-      "PC-E0109"
+      "PC-B0144",
+      "PC-C0119",
+      "PC-C0120",
+      "PC-C0124",
+      "PC-C0128",
+      "PC-C0150",
+      "PC-E0117",
+      "PC-E0143"
     ],
     "prev_error": [
-      "PC-A0103",
-      "PC-B0154",
-      "PC-E0125"
+      "PC-B0107",
+      "PC-B0110",
+      "PC-B0113"
+    ],
+    "cluster_proxy_down": [
+      "PC-D0115",
+      "PC-D0116",
+      "PC-D0122",
+      "PC-D0136",
+      "PC-D0141",
+      "PC-D0160"
     ]
   },
   "orphans": [
@@ -163,27 +232,200 @@
     "PC-D0198"
   ],
   "ip_mismatch": {
-    "PC-E0128": {
-      "db_ip": "10.24.1.73",
-      "log_ip": "10.24.1.37"
+    "PC-C0130": {
+      "db_ip": "10.22.1.93",
+      "log_ip": "10.22.1.39"
     },
-    "PC-D0122": {
-      "db_ip": "10.23.1.13",
-      "log_ip": "10.23.1.31"
+    "PC-B0154": {
+      "db_ip": "10.21.1.36",
+      "log_ip": "10.21.1.63"
     },
-    "PC-A0113": {
-      "db_ip": "10.20.1.23",
-      "log_ip": "10.20.1.22"
+    "PC-D0118": {
+      "db_ip": "10.23.1.72",
+      "log_ip": "10.23.1.27"
     },
-    "PC-E0121": {
-      "db_ip": "10.24.1.03",
-      "log_ip": "10.24.1.30"
+    "PC-C0154": {
+      "db_ip": "10.22.1.36",
+      "log_ip": "10.22.1.63"
+    }
+  },
+  "route_mismatch": {
+    "bypass": [
+      "PC-A0160"
+    ],
+    "unknown_source": [
+      "PC-C0115"
+    ]
+  },
+  "error_classification": {
+    "Connection refused: connect": "connection refused",
+    "OutOfMemoryError: Java heap space": "java.lang.OutOfMemoryError",
+    "SSL handshake failed: certificate expired": "NEW",
+    "disk full: cannot write spool file": "NEW",
+    "failed to parse config: retry_count=abc": "config parse failed",
+    "license server timeout (30000ms)": "license check timeout"
+  },
+  "clusters": {
+    "true": [
+      {
+        "pcs": [
+          "PC-A0118",
+          "PC-B0109",
+          "PC-B0149",
+          "PC-D0148"
+        ],
+        "pattern": "license check timeout",
+        "shared": "client_version=2.3.1"
+      },
+      {
+        "pcs": [
+          "PC-D0115",
+          "PC-D0116",
+          "PC-D0122",
+          "PC-D0136",
+          "PC-D0141"
+        ],
+        "pattern": "connection refused",
+        "shared": "proxy_pc=PC-D0160",
+        "proxy_pc": "PC-D0160"
+      }
+    ],
+    "coincidental": [
+      {
+        "pcs": [
+          "PC-E0121",
+          "PC-E0135",
+          "PC-E0141"
+        ],
+        "shared": "process=TEST"
+      }
+    ]
+  },
+  "proxy": {
+    "port": 3128,
+    "combos": {
+      "ETCH/ET-300": {
+        "kind": "self",
+        "proxies": [
+          "PC-A0115"
+        ],
+        "members": [
+          "PC-A0102",
+          "PC-A0103",
+          "PC-A0105",
+          "PC-A0107",
+          "PC-A0108",
+          "PC-A0110",
+          "PC-A0112",
+          "PC-A0115",
+          "PC-A0116",
+          "PC-A0117",
+          "PC-A0120",
+          "PC-A0122",
+          "PC-A0123",
+          "PC-A0124",
+          "PC-A0126",
+          "PC-A0127",
+          "PC-A0128",
+          "PC-A0131",
+          "PC-A0132",
+          "PC-A0134",
+          "PC-A0136",
+          "PC-A0141",
+          "PC-A0142",
+          "PC-A0146",
+          "PC-A0156",
+          "PC-A0157",
+          "PC-A0160"
+        ]
+      },
+      "DEPO/DP-300": {
+        "kind": "direct",
+        "proxies": [
+          "PC-C0105"
+        ],
+        "members": [
+          "PC-C0101",
+          "PC-C0104",
+          "PC-C0105",
+          "PC-C0107",
+          "PC-C0109",
+          "PC-C0112",
+          "PC-C0113",
+          "PC-C0117",
+          "PC-C0120",
+          "PC-C0122",
+          "PC-C0123",
+          "PC-C0124",
+          "PC-C0125",
+          "PC-C0126",
+          "PC-C0131",
+          "PC-C0132",
+          "PC-C0133",
+          "PC-C0137",
+          "PC-C0139",
+          "PC-C0143",
+          "PC-C0144",
+          "PC-C0145",
+          "PC-C0147",
+          "PC-C0148",
+          "PC-C0152",
+          "PC-C0157",
+          "PC-C0158",
+          "PC-C0160"
+        ]
+      },
+      "LITHO/LT-700": {
+        "kind": "split",
+        "proxies": [
+          "PC-D0157",
+          "PC-D0160"
+        ],
+        "members": [
+          "PC-D0101",
+          "PC-D0102",
+          "PC-D0103",
+          "PC-D0104",
+          "PC-D0108",
+          "PC-D0112",
+          "PC-D0113",
+          "PC-D0114",
+          "PC-D0115",
+          "PC-D0116",
+          "PC-D0117",
+          "PC-D0119",
+          "PC-D0121",
+          "PC-D0122",
+          "PC-D0123",
+          "PC-D0129",
+          "PC-D0133",
+          "PC-D0134",
+          "PC-D0136",
+          "PC-D0137",
+          "PC-D0139",
+          "PC-D0140",
+          "PC-D0141",
+          "PC-D0142",
+          "PC-D0143",
+          "PC-D0144",
+          "PC-D0149",
+          "PC-D0150",
+          "PC-D0151",
+          "PC-D0152",
+          "PC-D0156",
+          "PC-D0157",
+          "PC-D0158",
+          "PC-D0159",
+          "PC-D0160"
+        ]
+      }
     }
   },
   "rules": {
     "heartbeat_gap_minutes": 30,
     "restart_loop_start_count": 5,
     "gap_belongs_to_date_of_earlier_heartbeat": true,
+    "pattern_match": "메시지가 message_pattern으로 시작하면(대소문자 구분) 일치",
     "no_report": "DB에 있는 PC인데 해당 날짜 로그가 한 줄도 없음(전날에는 있었음)"
   }
 }

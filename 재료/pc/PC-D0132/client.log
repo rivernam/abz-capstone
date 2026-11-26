@@ -1,0 +1,4 @@
+2026-11-20 08:00:00 INFO client started version=2.4.0
+2026-11-26 01:00:09 ERROR java.lang.OutOfMemoryError: Java heap space
+2026-11-26 01:00:39 ERROR java.lang.OutOfMemoryError: Java heap space
+2026-11-26 01:00:40 INFO client stopped (fatal)

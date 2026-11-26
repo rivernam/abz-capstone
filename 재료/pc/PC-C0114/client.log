@@ -1,0 +1,3 @@
+2026-11-20 08:00:00 INFO client started version=2.4.0
+2026-11-24 10:30:00 ERROR bind failed: port 8443 already in use
+2026-11-25 16:57:09 ERROR SSL handshake failed: certificate expired
