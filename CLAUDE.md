@@ -12,6 +12,7 @@
 ## 명령
 
 - 가상 세계 다시 만들기: `python generator/make_world.py`
+- 가상 Java 소스 만들기(아이템 ② 소스 검색용): `python generator/make_source.py`
 - 시험: `python -m pytest -q`
 - 일일 리포트: `python -m runner.daily_report --date 2026-11-25`
 - 일일 리포트 채점: `python -m eval.score_daily_report --runs 3`

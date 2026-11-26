@@ -9,7 +9,8 @@ description: 설비 PC 클라이언트 문의를 읽고 대상 PC와 상태를 �
 
 1. 문의 원문을 읽는다. 첫 메시지에 원문이 있으면 `get_post`를 다시 부르지 않아도 된다.
 2. `diagnose_targets(post_id)`를 한 번 부른다. 대상 PC, 상태, 오류, 조치 계획은 모두 이 결과가 기준이다.
-3. 계획에 eligible=true인 PC가 있으면 inquiry-action Skill로 넘어간다. 없으면 바로 방법 회신을 쓴다.
+3. reason이 "오류 메시지가 패턴표에 없어"인 PC가 있으면 아래 "패턴표에 없는 메시지"대로 소스를 확인한다.
+4. 계획에 eligible=true인 PC가 있으면 inquiry-action Skill로 넘어간다. 없으면 바로 방법 회신을 쓴다.
 
 ## 대상 PC
 
@@ -32,5 +33,20 @@ PC마다 `category`와 `reason`을 본다.
   - 프록시 값을 정할 수 없음, 프록시 장애 의심: 후보 값(`proxy.candidates`)과 사유를 적고 운영자에게 넘긴다. 프록시 PC 이름이 있으면 그 PC부터 확인하라고 쓴다.
   - auto_action이 none인 오류(OOM, bind failed 등): 패턴표의 권장 조치를 적는다.
 - `조치 대상`(eligible=true): `action`에 할 일과 쓸 값이 있다. 값은 코드가 정했으므로 바꾸거나 다른 값을 제안하지 않는다.
+
+## 패턴표에 없는 메시지
+
+패턴표와 표기만 다른 메시지(예: 대소문자, 어순, 단위가 다른 문구)일 수도 있고, 단어만 겹치는 새로운 원인일 수도 있다. 메시지만 보고 어느 패턴인지 짐작하지 않는다. 소스에서 그 메시지를 내는 지점을 찾아 근거로 준다.
+
+1. `find_error_in_source(query)`로 그 PC의 `error_message`를 찾는다. 결과가 없으면 숫자, IP, 키 값처럼 바뀌는 부분을 빼고 앞부분 문구로 다시 찾는다(예: `license server timeout (30000ms)` → `license server timeout`).
+2. 결과에서 `error_kind`가 있고 그 줄의 문자열이 메시지와 같은 형식(`%s`, `%d`는 값 자리)인 줄을 고른다. `error_kind`가 없는 줄(경고 로그, 주석, ErrorKind 정의)은 근거가 아니다.
+3. `error_kind_pattern`이 null이면 패턴표에 없는 신규 원인이다. 근거를 주지 않고 조건 미충족 그대로 둔다. 회신에 소스로 확인한 원인(예: 라이선스 만료, 연결 끊김)과 운영자 확인이 필요하다고 적는다. 재시작으로 풀리지 않는 원인일 수 있으므로 재시작을 약속하지 않는다.
+4. `error_kind_pattern`이 패턴표의 패턴이면 `diagnose_targets(post_id, error_evidence=[{"pc_id": ..., "location": "경로:줄"}])`를 한 번 더 불러 계획을 확인한다. `source_evidence.ok`가 false면 그 사유를 회신에 적고 다른 줄을 억지로 찾지 않는다.
+5. 근거로 eligible=true가 된 PC가 있으면, 같은 `error_evidence`를 쓰기 Tool에 그대로 넘긴다(inquiry-action).
+
+- 근거는 PC마다 따로 준다. 같은 메시지라도 다른 PC의 근거를 섞지 않는다. 대상이 아닌 PC의 근거는 무시된다.
+- 근거가 맞는지는 Tool 코드가 그 줄을 직접 읽어 확인한다. 패턴 이름만 주장하거나 다른 줄을 주면 조치되지 않는다.
+- 소스 검색은 PC당 2~3회 안에서 끝낸다. 호출 상한이 있다.
+- 패턴표와 정확히 일치하는 PC, 식별 실패 PC는 소스를 찾지 않는다.
 
 더 확인할 것이 있을 때만 `get_client_state`, `get_server_log`, `get_error_patterns`를 쓴다. PC마다 부르지 않는다. 호출 상한(모델 15회, Tool 40회)이 있다.

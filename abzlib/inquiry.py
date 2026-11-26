@@ -6,7 +6,7 @@ import re
 from collections import Counter
 from datetime import datetime, timedelta
 
-from abzlib import history
+from abzlib import history, source
 from abzlib import virtual_pc as vpc
 from abzlib.master import load_master
 from abzlib.patterns import load_patterns, match_pattern
@@ -121,8 +121,12 @@ def identify_fail_hint(ctx, pc):
             "PC의 실제 IP를 운영자가 확인한다."}
 
 
-def plan_pc(ctx, pc):
-    """PC 하나의 조치 계획. eligible이면 action에 할 일과 쓸 값이 들어 있다."""
+def plan_pc(ctx, pc, evidence=None):
+    """PC 하나의 조치 계획. eligible이면 action에 할 일과 쓸 값이 들어 있다.
+
+    evidence는 {pc_id: "소스경로:줄"}(선택). 오류 메시지가 패턴표와 정확히 일치하지 않을 때만 쓰고,
+    코드가 그 줄을 직접 확인해(abzlib/source.verify_evidence) 통과해야 그 패턴으로 본다.
+    """
     w = ctx.world
     r = {"pc_id": pc, "eligible": False, "action": None}
     rec = ctx.master.get(pc)
@@ -142,8 +146,21 @@ def plan_pc(ctx, pc):
         return {**r, "category": NOT_MET, "identify_fail": hint,
                 "reason": f"식별 실패(기준정보 문제)라 자동 조치하지 않는다. {hint['reason']}: {hint['detail']}"}
     pat = match_pattern(err, ctx.patterns)
+    src = None
     if pat is None:
-        return {**r, "category": NOT_MET, "reason": "오류 메시지가 패턴표에 없어 자동 조치하지 않는다."}
+        loc = (evidence or {}).get(pc)
+        if not loc:
+            return {**r, "category": NOT_MET, "reason": "오류 메시지가 패턴표에 없어 자동 조치하지 않는다.",
+                    "source_check": "표기만 다른 메시지일 수 있다. find_error_in_source로 오류 지점을 찾고, 근거를 error_evidence로 줄 수 있다."}
+        v = source.verify_evidence(w, loc, err, ctx.patterns)
+        r["source_evidence"] = {"ok": v["ok"], "location": loc, "reason": v["reason"], "error_kind": v.get("error_kind")}
+        if not v["ok"]:
+            return {**r, "category": NOT_MET, "reason": f"오류 메시지가 패턴표에 없고 소스 근거가 확인되지 않아 자동 조치하지 않는다({v['reason']})"}
+        pat, src = v["pattern"], v
+        if pat["auto_action"] == "proxy_check_restart" and rec["internal_ip"]:
+            # 프록시 판단(동시 장애, 프록시 값)은 패턴표 표준 메시지를 전제로 하므로, 설비망 PC의 표기 변형은 넘긴다.
+            return {**r, "pattern": pat["message_pattern"], "category": NOT_MET,
+                    "reason": "소스 근거로 패턴은 확인했지만 프록시를 거치는 PC의 표기 변형 메시지라 프록시 판단을 하지 않고 운영자에게 넘긴다."}
     r.update({"pattern": pat["message_pattern"], "cause": pat["cause"], "recommended_action": pat["recommended_action"],
               "auto_action": pat["auto_action"]})
     aa = pat["auto_action"]
@@ -154,8 +171,18 @@ def plan_pc(ctx, pc):
     if aa == "restart":
         return {**r, "eligible": True, "category": "조치 대상", "action": {"type": "restart_only"}}
     if aa == "config_reset_restart":
-        m = re.search(r"key=(\S+) value=(.*)$", err)
-        key = m.group(1) if m else None
+        if src:
+            key, val = source.config_key_from(src["literal"], src["groups"])
+            if key is None:
+                return {**r, "category": NOT_MET, "reason": "소스 근거로 설정 오류임은 확인했지만 메시지에서 설정 키를 정할 수 없다."}
+            dv0 = ctx.defaults.get((ver, key), (None,))[0]
+            if props.get(key) not in (val, dv0):      # 기본값이면 이미 복구된 것(이 문의에서 고친 뒤 재시작 전)
+                return {**r, "category": NOT_MET,
+                        "reason": f"메시지의 값({key}={val})이 현재 설정 값({props.get(key)})과 달라 근거가 맞지 않는다."}
+            m = True
+        else:
+            m = re.search(r"key=(\S+) value=(.*)$", err)
+            key = m.group(1) if m else None
         dv = ctx.defaults.get((ver, key))
         if not m or dv is None or dv[1] != "yes":
             return {**r, "category": NOT_MET, "reason": f"설정 키 {key!r}가 버전 {ver}의 기본값 복구 허용 목록에 없다."}

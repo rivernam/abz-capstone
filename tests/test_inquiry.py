@@ -17,7 +17,7 @@ from abzlib import virtual_pc as vpc
 from abzlib.targets import parse_pc_field
 from abzlib.world import World
 from eval.score_inquiries import scripted_agent
-from generator import make_inquiries
+from generator import make_inquiries, make_source
 from generator.make_world import generate
 from runner import inquiry_agent
 from tools import board
@@ -30,6 +30,7 @@ CLOCK = lambda: datetime(2026, 11, 26, 9, 0, 0)
 def base(tmp_path_factory):
     root = tmp_path_factory.mktemp("base")
     generate(root)
+    make_source.generate(root)
     posts, answers = make_inquiries.generate(root)
     return {"root": root, "posts": posts, "answers": answers,
             "hidden": json.loads((root / "기록" / "정답_PC원인.json").read_text(encoding="utf-8"))}
@@ -155,6 +156,67 @@ def test_tools_cannot_reach_hidden_file(world):
         assert is_err and "restart_succeeds_if" not in text
     src = Path(T.__file__).read_text(encoding="utf-8") + Path(inquiry.__file__).read_text(encoding="utf-8")
     assert "hidden_path" not in src and "HIDDEN_CAUSES" not in src
+
+
+
+def _ideal_evidence(world, hidden, pcs):
+    """시험용: 메시지 앞부분으로 소스를 찾아 ErrorKind가 있는 첫 줄을 근거로 쓴다(모델이 할 일을 흉내 낸다)."""
+    ev = []
+    for pc in pcs:
+        q = hidden[pc]["error_message"].split(":")[0].split("(")[0].strip()
+        hits = [h for h in T.find_error_in_source(world, q)["hits"] if "error_kind" in h]
+        if hits:
+            ev.append({"pc_id": pc, "location": hits[0]["location"]})
+    return ev
+
+
+def test_source_evidence_reaches_ideal_answers(base, world):
+    """개선 단계 문의(#21~26): 소스 근거를 주면 표기 변형은 조치함, 신규 원인은 조건 미충족(정답)과 같아야 한다."""
+    hidden = base["hidden"]["pcs"]
+    for p in base["posts"][20:]:
+        pid = p["post_id"]
+        board.create_post(world, p["author"], p["title"], p["pc_field"], p["body"], p["created_at"], post_id=pid)
+        parsed = parse_pc_field(p["pc_field"], p["body"])
+        ev = _ideal_evidence(world, hidden, parsed["targets"])
+        d = T.diagnose_targets(world, pid, error_evidence=ev)
+        for name in d["write_tools_needed_in_order"]:
+            assert not T.execute(world, name, {"post_id": pid, "error_evidence": ev})[1]
+        got = {r["pc_id"]: r["result"] for r in inquiry.result_table(world, board.get_post(world, pid), parsed)}
+        assert got == base["answers"][str(pid)]["expected"], pid
+    new = set(base["hidden"]["scenarios"]["op_new_cause"])
+    assert not {h["pc_id"] for h in history.rows(world)} & new
+
+
+def test_source_evidence_is_checked_by_code(base, world):
+    """모델이 준 근거는 코드가 확인한다: 다른 줄, 신규 원인 줄, 소스 밖 경로, 대상이 아닌 PC의 근거는 통하지 않는다."""
+    sc, hidden = base["hidden"]["scenarios"], base["hidden"]["pcs"]
+    conn = next(pc for pc in sc["op_variant"] if hidden[pc]["error_message"].startswith("Connection refused"))
+    new = next(pc for pc in sc["op_new_cause"] if hidden[pc]["error_message"].startswith("connection reset"))
+    pid = add(world, f"{conn}, {new}")
+    good = _ideal_evidence(world, hidden, [conn])[0]["location"]
+    reset_line = _ideal_evidence(world, hidden, [new])[0]["location"]
+    cases = {
+        "com/abz/client/HeartbeatSender.java:34": False,      # 다른 메시지의 줄
+        "com/abz/client/ErrorKind.java:14": False,            # 대응 정의 줄(리터럴과 메시지가 맞지 않음)
+        "../../기록/정답_PC원인.json:1": False,                 # 소스 밖
+        "com/abz/client/ServerConnection.java:9999": False,
+        "아무거나": False,
+        good: True,
+    }
+    for loc, ok in cases.items():
+        plan = {x["pc_id"]: x for x in T.diagnose_targets(world, pid, error_evidence=[{"pc_id": conn, "location": loc}])["plans"]}
+        assert plan[conn]["eligible"] is ok, loc
+    # 신규 원인 PC는 자기 메시지의 줄을 근거로 줘도, 표기 변형 PC의 줄을 줘도 조치하지 않는다.
+    for loc in (reset_line, good):
+        plan = {x["pc_id"]: x for x in T.diagnose_targets(world, pid, error_evidence=[{"pc_id": new, "location": loc}])["plans"]}
+        assert not plan[new]["eligible"], loc
+    # 대상이 아닌 PC의 근거는 무시한다.
+    d = T.diagnose_targets(world, pid, error_evidence=[{"pc_id": "PC-A0101", "location": good}])
+    assert d["error_evidence_ignored"] == ["PC-A0101"]
+    r = {x["pc_id"]: x for x in T.restart_client_service(world, pid, error_evidence=[{"pc_id": conn, "location": good},
+                                                                                     {"pc_id": new, "location": reset_line}])["results"]}
+    assert r[conn]["result"] == "success" and "skipped" in r[new]
+    assert T.execute(world, "find_error_in_source", {"query": "connection"})[0].count("location") <= 10
 
 
 def resp(*blocks, stop="tool_use"):
