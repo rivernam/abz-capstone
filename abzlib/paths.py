@@ -21,3 +21,4 @@ HIDDEN_CAUSES = RECORD_DIR / "정답_PC원인.json"          # 가상 재시작�
 INQUIRY_SET = RECORD_DIR / "문의시험세트.json"
 INQUIRY_ANSWER = RECORD_DIR / "정답표_문의.json"
 EVAL_DIR = RECORD_DIR / "평가"
+SOURCE_DIR = MATERIAL / "소스"                         # 가상 Java 클라이언트 소스(개선 단계, generator/make_source.py)
