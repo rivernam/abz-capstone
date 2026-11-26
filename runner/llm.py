@@ -21,7 +21,7 @@ def load_system_prompt(skill_name):
     if claude_md.exists():
         parts.append(claude_md.read_text(encoding="utf-8"))
     skill = (paths.SKILLS_DIR / skill_name / "SKILL.md").read_text(encoding="utf-8")
-    parts.append(re.sub(r"\A---\n.*?\n---\n", "", skill, flags=re.S))
+    parts.append(re.sub(r"\A---\r?\n.*?\r?\n---\r?\n", "", skill, flags=re.S))
     return "\n\n".join(parts)
 
 
