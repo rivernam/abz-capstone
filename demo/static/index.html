@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ABZ 클라이언트 운영 지원 · 시연</title>
+<style>
+:root{
+  --bg:#EEF1F3; --panel:#FFFFFF; --ink:#17212B; --steel:#5B6B7A; --line:#D5DCE2;
+  --blue:#1D5FA6; --blue-soft:#E3EDF8; --green:#2F8A4E; --green-soft:#E2F2E7;
+  --amber:#B86E00; --amber-soft:#FBEFD9; --red:#B3261E; --red-soft:#F8E1DF;
+  --mono: Consolas, "D2Coding", "Courier New", monospace;
+  --sans: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans)}
+header{display:flex;align-items:center;gap:28px;padding:0 28px;height:60px;background:var(--ink);color:#fff}
+header h1{font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
+header h1 small{font-weight:400;color:#9FB0C0;margin-left:10px;font-size:13px}
+nav{display:flex;gap:4px;margin-left:auto}
+nav button{background:none;border:0;color:#B9C6D2;font:600 14px var(--sans);padding:8px 14px;border-radius:6px;cursor:pointer}
+nav button[aria-selected=true]{background:#2A3846;color:#fff}
+nav button:focus-visible, button:focus-visible, select:focus-visible, .post:focus-visible{outline:3px solid #7FB2EA;outline-offset:2px}
+main{max-width:1320px;margin:0 auto;padding:24px 28px 60px}
+.view[hidden]{display:none}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+h2{font-size:20px;margin:0 0 4px;letter-spacing:-.01em}
+h3{font-size:15px;margin:0 0 10px}
+.lead{color:var(--steel);margin:0 0 16px;font-size:14px}
+label{display:block;font-weight:600;font-size:13px;margin-bottom:6px}
+select{width:100%;font:15px var(--sans);padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.run{display:block;width:100%;margin-top:14px;padding:11px;font:700 15px var(--sans);color:#fff;background:var(--blue);border:0;border-radius:6px;cursor:pointer}
+.run:disabled{background:#8AA5C2;cursor:progress}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.kpi{border-left:3px solid var(--blue);padding:4px 0 4px 10px}
+.kpi b{display:block;font-size:24px;line-height:1.2}
+.kpi span{font-size:12px;color:var(--steel)}
+.section{margin-bottom:20px}
+.step-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.step-head .no{font:700 13px var(--sans);color:#fff;background:var(--blue);border-radius:50%;width:24px;height:24px;display:inline-grid;place-items:center;flex:none}
+.step-head h3{margin:0}
+.step-head p{margin:0;color:var(--steel);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;color:var(--steel);font-weight:600;border-bottom:1px solid var(--line);padding:6px 8px}
+td{border-bottom:1px solid #EDF0F3;padding:8px;vertical-align:top}
+code{font:13px var(--mono);background:#F1F4F7;padding:1px 5px;border-radius:4px;word-break:break-all}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:10px;white-space:nowrap}
+.tag.ok{background:var(--green-soft);color:var(--green)}
+.tag.no{background:#ECEFF2;color:var(--steel)}
+.tag.new{background:var(--amber-soft);color:var(--amber)}
+.tag.err{background:var(--red-soft);color:var(--red)}
+.cluster{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:8px}
+.cluster.yes{border-color:#9CCAAA;background:#F6FBF7}
+.cluster .meta{font-size:12px;color:var(--steel);margin-top:4px}
+details summary{cursor:pointer;color:var(--blue);font-size:14px;font-weight:600}
+.summary{font-size:16px;line-height:1.75;margin:0}
+.guard{font-size:13px;color:var(--steel);margin-top:10px}
+iframe{width:100%;height:720px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.empty{color:var(--steel);font-size:14px;padding:30px 0;text-align:center}
+.status{font-size:14px;color:var(--steel);display:flex;align-items:center;gap:8px}
+.spin{width:14px;height:14px;border:2px solid #BFD3E8;border-top-color:var(--blue);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}.lamp.on{animation:none}}
+/* 문의 */
+.posts{max-height:calc(100vh - 160px);overflow:auto;padding:0;margin:0;list-style:none}
+.post{padding:10px 12px;border-bottom:1px solid #EDF0F3;cursor:pointer}
+.post:hover{background:#F5F8FB}
+.post[aria-selected=true]{background:var(--blue-soft);box-shadow:inset 3px 0 var(--blue)}
+.post .t{font-weight:600;font-size:14px}
+.post .m{font-size:12px;color:var(--steel)}
+.letter{border:1px solid var(--line);border-radius:8px;padding:16px 18px;background:#FBFCFD}
+.letter .from{font-size:13px;color:var(--steel)}
+.letter .pcs{margin:8px 0;font-size:14px}
+.letter pre{white-space:pre-wrap;font:15px/1.7 var(--sans);margin:8px 0 0}
+/* 신호등 타임라인: 이 화면의 중심 */
+.rail{list-style:none;margin:0;padding:0;position:relative}
+.rail:before{content:"";position:absolute;left:13px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.rail li{position:relative;padding:0 0 14px 40px}
+.lamp{position:absolute;left:5px;top:3px;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);background:#C9D2DA}
+.lamp.read{background:var(--blue)}
+.lamp.write{background:var(--green)}
+.lamp.reply{background:#6B4FA0}
+.lamp.err{background:var(--red)}
+.lamp.on{background:var(--amber);animation:blink 1s steps(2,start) infinite}
+@keyframes blink{to{background:#F2C66D}}
+.rail .name{font-weight:700;font-size:14px}
+.rail .fn{font:12px var(--mono);color:var(--steel);margin-left:6px}
+.rail .args{font:12px var(--mono);color:#3C4B59;margin-top:2px;word-break:break-all}
+.rail details{margin-top:4px}
+.rail details pre{font:12px/1.5 var(--mono);background:#F4F6F8;border-radius:6px;padding:10px;max-height:280px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.diff{font:13px/1.6 var(--mono);background:#F7F9FA;border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:8px;overflow:auto}
+.diff .h{color:var(--steel)}
+.diff .a{color:var(--green)} .diff .d{color:var(--red)}
+.note{white-space:pre-wrap;font:14px/1.75 var(--sans);background:#FAF8FD;border:1px solid #DCD3EA;border-radius:8px;padding:14px 16px;margin:0}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:1100px){.cols{grid-template-columns:1fr}}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--steel);margin:-4px 0 12px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ABZ 클라이언트 운영 지원<small>설비 PC 클라이언트 · 가상 데이터</small></h1>
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-view="report">일일 리포트</button>
+    <button role="tab" aria-selected="false" data-view="inquiry">문의 자동 조치</button>
+  </nav>
+</header>
+<main>
+<section class="view" id="view-report">
+  <div class="grid">
+    <div class="panel">
+      <h2>일일 리포트</h2>
+      <p class="lead">서버 로그를 집계하고, LLM이 처음 보는 오류 분류·공통 원인 판정·요약을 맡습니다. 숫자는 모두 코드가 셉니다.</p>
+      <label for="date">리포트 날짜</label>
+      <select id="date"></select>
+      <button class="run" id="run-report">리포트 만들기</button>
+      <div class="kpis" id="kpis" hidden></div>
+      <p class="guard" id="report-usage"></p>
+    </div>
+    <div id="report-out"><div class="panel empty">날짜를 고르고 <b>리포트 만들기</b>를 누르면 결과가 여기에 나옵니다. 약 30초 걸립니다.</div></div>
+  </div>
+</section>
+
+<section class="view" id="view-inquiry" hidden>
+  <div class="grid">
+    <div class="panel" style="padding:0">
+      <div style="padding:16px 16px 8px"><h2>게시판 문의</h2><p class="lead" style="margin:0">시험 세트 29건 중 하나를 고르세요.</p></div>
+      <ul class="posts" id="posts" role="listbox" aria-label="문의 목록"></ul>
+    </div>
+    <div>
+      <div class="panel section" id="post-view"><div class="empty">왼쪽에서 문의를 고르세요.</div></div>
+      <div id="inq-out"></div>
+    </div>
+  </div>
+</section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else e.setAttribute(k, v); }
+  for (const k of kids) if (k != null) e.append(k);
+  return e;
+};
+const TOOL = {
+  get_post: ['문의 읽기', 'read'], diagnose_targets: ['대상 PC 진단', 'read'], get_pc_info: ['기준정보 조회', 'read'],
+  get_client_state: ['클라이언트 상태 확인', 'read'], get_server_log: ['서버 로그 조회', 'read'], get_error_patterns: ['오류 패턴표 조회', 'read'],
+  find_error_in_source: ['소스 코드 검색', 'read'], update_client_config: ['설정 기본값 복구', 'write'], update_jvm_proxy: ['JVM 프록시 인자 수정', 'write'],
+  restart_client_service: ['클라이언트 재시작', 'write'], post_operator_note: ['회신 초안 등록', 'reply'],
+};
+let META = null, current = null;
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'view-' + b.dataset.view);
+});
+
+async function poll(job, onEvents) {
+  let seen = 0;
+  for (;;) {
+    const j = await (await fetch('/api/job/' + job)).json();
+    if (j.events.length > seen) { onEvents(j.events.slice(seen), j); seen = j.events.length; }
+    if (j.status !== 'running') return j;
+    await new Promise(r => setTimeout(r, 700));
+  }
+}
+
+/* ---------- 아이템 ① ---------- */
+$('#run-report').onclick = async () => {
+  const btn = $('#run-report'); btn.disabled = true; btn.textContent = '만드는 중…';
+  const out = $('#report-out'); out.replaceChildren(el('div', {class: 'panel status'}, el('span', {class: 'spin'}), '서버 로그를 집계하고 LLM에 판단을 요청하는 중입니다.'));
+  try {
+    const {job} = await (await fetch('/api/report', {method: 'POST', body: JSON.stringify({date: $('#date').value})})).json();
+    const j = await poll(job, () => {});
+    if (j.status === 'error') throw new Error(j.error);
+    renderReport(j.result);
+  } catch (e) {
+    out.replaceChildren(el('div', {class: 'panel'}, el('span', {class: 'tag err', text: '실패'}), ' ' + e.message));
+  } finally { btn.disabled = false; btn.textContent = '리포트 만들기'; }
+};
+
+function step(no, title, desc, body) {
+  return el('div', {class: 'panel section'},
+    el('div', {class: 'step-head'}, el('span', {class: 'no', text: no}), el('div', {}, el('h3', {text: title}), el('p', {text: desc}))), body);
+}
+
+function renderReport(r) {
+  const t = r.totals, k = $('#kpis'); k.hidden = false;
+  const kpi = (v, l) => el('div', {class: 'kpi'}, el('b', {text: v}), el('span', {text: l}));
+  k.replaceChildren(kpi(t.registered + '대', '등록 PC'), kpi(t.normal_ratio + '%', '정상 PC 비율'),
+    kpi(t.anomalous + '대', '이상 PC' + (t.prev_anomalous != null ? ' (전일 ' + t.prev_anomalous + '대)' : '')), kpi(t.identify_fail + '건', '식별 실패'));
+  $('#report-usage').textContent = r.usage.model + ' · 입력 ' + r.usage.input_tokens + ' · 출력 ' + r.usage.output_tokens + ' 토큰';
+
+  const mt = el('table', {}, el('tr', {}, el('th', {text: '로그의 메시지'}), el('th', {text: 'LLM 분류'}), el('th', {text: '이유'})));
+  for (const m of r.message_classes) mt.append(el('tr', {},
+    el('td', {}, el('code', {text: m.message})),
+    el('td', {}, m.matched_pattern === 'NEW' ? el('span', {class: 'tag new', text: '새 오류 유형'}) : el('code', {text: m.matched_pattern})),
+    el('td', {text: m.reason})));
+  if (!r.message_classes.length) mt.append(el('tr', {}, el('td', {colspan: 3, class: 'empty', text: '패턴표와 다른 메시지가 없습니다.'})));
+
+  const yes = r.clusters.filter(c => c.meaningful), no = r.clusters.filter(c => !c.meaningful);
+  const card = c => el('div', {class: 'cluster' + (c.meaningful ? ' yes' : '')},
+    el('div', {}, el('span', {class: 'tag ' + (c.meaningful ? 'ok' : 'no'), text: c.meaningful ? '공통 원인' : '공통 원인 아님'}), ' ', c.cause),
+    el('div', {class: 'meta', text: '신호 ' + c.signal + ' · ' + c.pcs.length + '대 · 공유 속성 ' + Object.entries(c.shared).map(([a, b]) => a + '=' + b).join(', ')
+      + (c.proxy_pc ? ' · 프록시 PC 지목 ' + c.proxy_pc : '')}));
+  const cl = el('div', {}, ...yes.map(card));
+  if (no.length) cl.append(el('details', {}, el('summary', {text: '공통 원인이 아니라고 본 후보 ' + no.length + '개'}), ...no.map(card)));
+
+  const g = r.guard || {};
+  const sm = el('div', {}, el('p', {class: 'summary', text: r.summary}),
+    el('p', {class: 'guard', text: '발행 전 검사 · 첫 요약의 출처 없는 숫자: ' + ((g.first_ungrounded || []).join(', ') || '없음') + ' · 재생성 ' + (g.regenerated ? '함' : '안 함') + ' · 뺀 문장 ' + (g.dropped_sentences || []).length + '개'}));
+
+  $('#report-out').replaceChildren(
+    step('1', '처음 보는 오류 메시지 분류', '패턴표와 표현이 다른 메시지를 패턴표 항목에 맞추거나 새 오류 유형으로 둡니다.', mt),
+    step('2', '공통 원인 판정', '코드가 조건으로 추린 후보 ' + r.clusters.length + '개를 LLM이 하나씩 판정합니다.', cl),
+    step('3', '요약', '숫자는 입력에 있는 값만 씁니다. 발행 전에 코드가 한 번 더 검사합니다.', sm),
+    el('div', {class: 'panel section'}, el('h3', {text: '발행된 리포트'}), el('iframe', {src: r.report_url, title: '발행된 일일 리포트'})));
+}
+
+/* ---------- 아이템 ② ---------- */
+function renderPosts() {
+  const ul = $('#posts');
+  for (const p of META.posts) {
+    const li = el('li', {class: 'post', role: 'option', tabindex: '0', 'aria-selected': 'false'},
+      el('div', {class: 't', text: '#' + p.post_id + ' ' + p.title}), el('div', {class: 'm', text: p.pc_field + ' · ' + p.category}));
+    li.onclick = () => selectPost(p, li);
+    li.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPost(p, li); } };
+    ul.append(li);
+  }
+}
+
+function selectPost(p, li) {
+  current = p;
+  document.querySelectorAll('.post').forEach(x => x.setAttribute('aria-selected', x === li));
+  const btn = el('button', {class: 'run', text: '에이전트로 처리하기'});
+  btn.onclick = () => runInquiry(p, btn);
+  $('#post-view').replaceChildren(
+    el('div', {class: 'letter'},
+      el('div', {class: 'from', text: '#' + p.post_id + ' · ' + p.author + ' · ' + p.created_at}),
+      el('h2', {text: p.title}),
+      el('div', {class: 'pcs'}, el('b', {text: '설비 PC ID '}), el('code', {text: p.pc_field})),
+      el('pre', {text: p.body})),
+    btn);
+  $('#inq-out').replaceChildren();
+}
+
+function argsText(input) {
+  const a = Object.assign({}, input); delete a.post_id;
+  if (a.message) a.message = a.message.slice(0, 80) + (a.message.length > 80 ? '…' : '');
+  const s = JSON.stringify(a);
+  return s === '{}' ? '' : s;
+}
+
+function pretty(s) { try { return JSON.stringify(JSON.parse(s), null, 2); } catch { return s; } }
+
+async function runInquiry(p, btn) {
+  btn.disabled = true; btn.textContent = '처리 중…';
+  const rail = el('ol', {class: 'rail'});
+  const pending = el('li', {}, el('span', {class: 'lamp on'}), el('div', {class: 'name', text: '모델이 다음 행동을 고르는 중'}));
+  rail.append(pending);
+  const legend = el('div', {class: 'legend'},
+    el('span', {}, el('i', {style: 'background:var(--blue)'}), '읽기'), el('span', {}, el('i', {style: 'background:var(--green)'}), 'PC 조치'),
+    el('span', {}, el('i', {style: 'background:#6B4FA0'}), '회신'), el('span', {}, el('i', {style: 'background:var(--red)'}), 'Tool이 거부'));
+  const trace = el('div', {class: 'panel section'}, el('h3', {text: '에이전트가 고른 Tool'}), legend, rail);
+  $('#inq-out').replaceChildren(trace);
+  let models = 0;
+  try {
+    const {job} = await (await fetch('/api/inquiry', {method: 'POST', body: JSON.stringify({post_id: p.post_id})})).json();
+    const j = await poll(job, evs => {
+      for (const e of evs) {
+        if (e.type === 'model') { models = e.n; pending.querySelector('.name').textContent = '모델 호출 ' + models + '회 · 다음 행동을 고르는 중'; continue; }
+        if (e.type !== 'tool') continue;
+        const [label, kind] = TOOL[e.name] || [e.name, 'read'];
+        const li = el('li', {}, el('span', {class: 'lamp ' + (e.is_error ? 'err' : kind)}),
+          el('div', {}, el('span', {class: 'name', text: label}), el('span', {class: 'fn', text: e.name})),
+          argsText(e.input) ? el('div', {class: 'args', text: argsText(e.input)}) : null,
+          el('details', {}, el('summary', {text: e.is_error ? 'Tool이 거부한 이유' : 'Tool 결과'}), el('pre', {text: pretty(e.result)})));
+        rail.insertBefore(li, pending);
+      }
+    });
+    pending.remove();
+    if (j.status === 'error') throw new Error(j.error);
+    renderInquiryResult(j.result);
+  } catch (e) {
+    pending.remove();
+    $('#inq-out').append(el('div', {class: 'panel'}, el('span', {class: 'tag err', text: '실패'}), ' ' + e.message));
+  } finally { btn.disabled = false; btn.textContent = '같은 문의 다시 처리하기'; }
+}
+
+function renderInquiryResult(r) {
+  const ch = el('div', {});
+  if (!r.changes.length) ch.append(el('p', {class: 'lead', text: 'PC 파일은 바뀌지 않았습니다. 자동 조치 조건이 맞지 않아 운영자에게 넘겼습니다.'}));
+  for (const c of r.changes) {
+    const box = el('div', {class: 'diff'}, el('div', {class: 'h', text: c.pc + ' / ' + c.file}));
+    for (const l of c.lines) box.append(el('div', {class: l[0] === '+' ? 'a' : 'd', text: l}));
+    ch.append(box);
+  }
+  const st = el('div', {class: 'lead'});
+  for (const [pc, s] of Object.entries(r.pc_status)) st.append(el('span', {class: 'tag ' + (s === 'running' ? 'ok' : 'new'), text: pc + ' ' + (s === 'running' ? '실행 중' : '정지')}), ' ');
+  const notes = el('div', {}, ...(r.notes.length ? r.notes.map(n => el('pre', {class: 'note', text: n})) : [el('p', {class: 'lead', text: '회신 초안이 없습니다.'})]));
+  $('#inq-out').append(el('div', {class: 'cols'},
+    el('div', {class: 'panel'}, el('h3', {text: 'PC에 생긴 변화'}), st, ch),
+    el('div', {class: 'panel'}, el('h3', {text: '운영자 전용 메모 (회신 초안)'}), notes,
+      el('p', {class: 'guard', text: '모델 호출 ' + r.model_calls + '회 · Tool 호출 ' + r.tool_calls + '회 · 상태 ' + r.status}))));
+}
+
+(async () => {
+  META = await (await fetch('/api/meta')).json();
+  for (const d of META.report_dates) $('#date').append(el('option', {value: d, text: d}));
+  $('#date').value = META.report_dates[META.report_dates.length - 1];
+  renderPosts();
+  // #report=작업ID 또는 #inquiry=작업ID: 끝난 작업을 다시 그린다(화면 확인과 발표 백업용).
+  const m = location.hash.match(/^#(report|inquiry)=(\w+)$/);
+  if (m) {
+    const j = await (await fetch('/api/job/' + m[2])).json();
+    if (m[1] === 'report' && j.result) { $('#date').value = j.result.date; renderReport(j.result); }
+    if (m[1] === 'inquiry' && j.result) {
+      document.querySelector('nav button[data-view=inquiry]').click();
+      const p = META.posts.find(x => x.post_id === j.result.post_id);
+      const li = [...document.querySelectorAll('.post')][META.posts.indexOf(p)];
+      selectPost(p, li);
+      const rail = el('ol', {class: 'rail'});
+      for (const e of j.events.filter(e => e.type === 'tool')) {
+        const [label, kind] = TOOL[e.name] || [e.name, 'read'];
+        rail.append(el('li', {}, el('span', {class: 'lamp ' + (e.is_error ? 'err' : kind)}),
+          el('div', {}, el('span', {class: 'name', text: label}), el('span', {class: 'fn', text: e.name})),
+          argsText(e.input) ? el('div', {class: 'args', text: argsText(e.input)}) : null,
+          el('details', {}, el('summary', {text: e.is_error ? 'Tool이 거부한 이유' : 'Tool 결과'}), el('pre', {text: pretty(e.result)}))));
+      }
+      $('#inq-out').replaceChildren(el('div', {class: 'panel section'}, el('h3', {text: '에이전트가 고른 Tool'}), rail));
+      renderInquiryResult(j.result);
+    }
+  }
+})();
+</script>
+</body>
+</html>

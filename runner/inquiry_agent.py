@@ -65,7 +65,9 @@ def _get(block, name, default=None):
     return block.get(name, default) if isinstance(block, dict) else getattr(block, name, default)
 
 
-def run(post_id, world=None, client=None, model=None, runs_dir=None, effort="medium"):
+def run(post_id, world=None, client=None, model=None, runs_dir=None, effort="medium", on_event=None):
+    """on_event(dict)는 선택. 모델 호출과 Tool 호출이 끝날 때마다 불린다(시연 화면의 진행 표시용)."""
+    emit = on_event or (lambda e: None)
     world = world or World()
     post = board.get_post(world, post_id)
     if post is None:
@@ -90,6 +92,7 @@ def run(post_id, world=None, client=None, model=None, runs_dir=None, effort="med
             abort = f"모델 호출 오류: {type(e).__name__}: {e}"
             break
         model_calls += 1
+        emit({"type": "model", "n": model_calls, "stop_reason": _get(resp, "stop_reason")})
         usage = _get(resp, "usage")
         rec["calls"].append({"stop_reason": _get(resp, "stop_reason"), "model": _get(resp, "model"),
                              "usage": _dump(usage) if usage is not None else None,
@@ -120,6 +123,7 @@ def run(post_id, world=None, client=None, model=None, runs_dir=None, effort="med
             if name == "post_operator_note" and not is_err and args.get("post_id") == post_id:
                 noted = True
             rec["tool_calls"].append({"name": name, "input": args, "is_error": is_err, "result": text[:2000]})
+            emit({"type": "tool", "n": tool_calls, "name": name, "input": args, "is_error": is_err, "result": text[:2000]})
             results.append({"type": "tool_result", "tool_use_id": _get(b, "id"), "content": text, "is_error": is_err})
         if abort:
             break
