@@ -8,10 +8,10 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.StopReason;
 import com.anthropic.models.messages.Tool;
 import com.anthropic.models.messages.ToolResultBlockParam;
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /** Claude API(Messages API)로 만든 에이전트 루프. ANTHROPIC_API_KEY 환경변수가 필요하다. */
@@ -23,36 +23,49 @@ public class ClaudeOrderAgent {
     static Tool definition(OrderTools.Tool tool) {
         Tool.InputSchema.Properties.Builder properties = Tool.InputSchema.Properties.builder();
         tool.properties().forEach((key, schema) -> properties.putAdditionalProperty(key, JsonValue.from(schema)));
-        return Tool.builder()
+        Tool.InputSchema.Builder schema = Tool.InputSchema.builder()
+                .properties(properties.build())
+                .required(tool.required());
+        tool.parameters().forEach((key, value) -> { // additionalProperties처럼 스키마에 적힌 나머지 항목
+            if (!Set.of("type", "properties", "required").contains(key)) {
+                schema.putAdditionalProperty(key, JsonValue.from(value));
+            }
+        });
+        Tool.Builder definition = Tool.builder()
                 .name(tool.name())
                 .description(tool.description())
-                .inputSchema(Tool.InputSchema.builder()
-                        .properties(properties.build())
-                        .required(tool.required())
-                        .putAdditionalProperty("additionalProperties", JsonValue.from(false))
-                        .build())
-                .strict(true)
-                .build();
+                .inputSchema(schema.build());
+        if (tool.strict()) {
+            definition.strict(true);
+        }
+        return definition.build();
     }
 
     /** 인자는 JSON 객체로 온다. 객체가 아니면 null을 돌려주고, Tool 실행 쪽이 오류로 처리한다. */
+    @SuppressWarnings("unchecked")
     static Map<String, Object> toArgs(JsonValue input) {
         try {
-            return input.convert(new TypeReference<Map<String, Object>>() {});
+            return input.convert(Map.class);
         } catch (IllegalArgumentException e) {
             return null;
         }
     }
 
     static AgentResult runAgent(AnthropicClient client, String inquiry, OrderTools.ToolListener listener) {
+        return runAgent(client, inquiry, listener, OrderTools.SYSTEM, OrderTools.TOOLS);
+    }
+
+    /** system과 tools를 바꿔 끼우면 같은 루프로 다른 에이전트가 된다. */
+    static AgentResult runAgent(AnthropicClient client, String inquiry, OrderTools.ToolListener listener,
+            String system, List<OrderTools.Tool> tools) {
         // 빌더가 대화 기록을 들고 있다. 매 호출마다 메시지를 덧붙인다.
         // 시스템 프롬프트는 메시지가 아니라 system으로 넘긴다.
         MessageCreateParams.Builder params = MessageCreateParams.builder()
                 .model(MODEL)
                 .maxTokens(16000L)
-                .system(OrderTools.SYSTEM)
+                .system(system)
                 .addUserMessage("<inquiry>\n" + inquiry + "\n</inquiry>");
-        OrderTools.TOOLS.forEach(tool -> params.addTool(definition(tool)));
+        tools.forEach(tool -> params.addTool(definition(tool)));
 
         for (int call = 0; call < OrderTools.MAX_MODEL_CALLS; call++) {
             Message response = client.messages().create(params.build());
@@ -75,7 +88,7 @@ public class ClaudeOrderAgent {
             List<ContentBlockParam> results = new ArrayList<>();
             for (ContentBlock block : response.content()) {
                 block.toolUse().ifPresent(toolUse -> {
-                    OrderTools.ToolOutput output = OrderTools.run(toolUse.name(), toArgs(toolUse._input()));
+                    OrderTools.ToolOutput output = OrderTools.run(toolUse.name(), toArgs(toolUse._input()), tools);
                     listener.onTool(toolUse.name(), toolUse._input(), output);
                     results.add(ContentBlockParam.ofToolResult(ToolResultBlockParam.builder()
                             .toolUseId(toolUse.id())

@@ -57,7 +57,8 @@ class Tool:
     name: str
     description: str
     parameters: dict  # 입력 JSON 스키마. API마다 감싸는 모양만 다르다
-    handler: Callable[..., dict]
+    handler: Callable[..., dict | str]  # dict는 JSON으로, str은 그대로 모델에게 돌려준다
+    strict: bool = True  # 스키마를 엄격하게 지키게 할지. 직접 쓴 스키마가 아니면 끈다
 
 
 ORDER_ID_SCHEMA = {
@@ -71,36 +72,38 @@ TOOLS = [
     Tool("cancel_order", "주문을 취소한다. 결제완료 상태일 때만 된다. 먼저 get_order로 상태를 확인한다.",
          ORDER_ID_SCHEMA, cancel_order),
 ]
-TOOLS_BY_NAME = {tool.name: tool for tool in TOOLS}
 
 
 def check_args(tool: Tool, args) -> None:
     """인자가 스키마에 맞는지 확인한다. 이 샘플의 스키마(문자열 인자만 있는 객체)만 다룬다."""
     if not isinstance(args, dict):
         raise ToolError("인자는 JSON 객체여야 한다.")
-    properties = tool.parameters["properties"]
-    for key in tool.parameters["required"]:
+    properties = tool.parameters.get("properties", {})
+    for key in tool.parameters.get("required", []):
         if key not in args:
             raise ToolError(f"인자 {key}가 없다.")
     for key, value in args.items():
         if key not in properties:
             raise ToolError(f"모르는 인자 {key}가 있다.")
-        if properties[key]["type"] == "string" and not isinstance(value, str):
+        if properties[key].get("type") == "string" and not isinstance(value, str):
             raise ToolError(f"인자 {key}는 문자열이어야 한다.")
 
 
-def run_tool(name: str, args) -> tuple[str, bool]:
-    """Tool을 실행해 (결과 문자열, 오류 여부)를 돌려준다. 오류도 모델에게 알려야 모델이 다음 판단을 한다.
+def run_tool(name: str, args, tools: list[Tool] = TOOLS) -> tuple[str, bool]:
+    """tools에서 이름으로 Tool을 찾아 실행하고 (결과 문자열, 오류 여부)를 돌려준다.
+
+    오류도 모델에게 알려야 모델이 다음 판단을 한다.
 
     - 의도한 거절(ToolError): 사유를 그대로 돌려준다.
     - 그 밖의 예외: Tool 구현의 버그다. 기록을 남기고, 모델에게는 내부 사정을 뺀 문장만 돌려준다.
     """
     try:
-        tool = TOOLS_BY_NAME.get(name)
+        tool = next((tool for tool in tools if tool.name == name), None)
         if tool is None:
             raise ToolError(f"Tool {name}이(가) 없다.")
         check_args(tool, args)
-        return json.dumps(tool.handler(**args), ensure_ascii=False), False
+        result = tool.handler(**args)
+        return (result if isinstance(result, str) else json.dumps(result, ensure_ascii=False)), False
     except ToolError as e:
         return f"오류: {e}", True
     except Exception:

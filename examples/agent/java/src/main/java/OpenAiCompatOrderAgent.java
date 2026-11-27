@@ -1,5 +1,3 @@
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.JsonValue;
@@ -14,6 +12,8 @@ import com.openai.models.chat.completions.ChatCompletionMessageToolCall;
 import com.openai.models.chat.completions.ChatCompletionToolMessageParam;
 import java.util.List;
 import java.util.Map;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
 
 /**
  * OpenAI 호환 API(Chat Completions)로 만든 에이전트 루프.
@@ -26,38 +26,41 @@ public class OpenAiCompatOrderAgent {
 
     /** OpenAI 호환 Tool 정의: function으로 감싸고 스키마를 parameters에 넣는다. */
     static ChatCompletionFunctionTool definition(OrderTools.Tool tool) {
+        FunctionParameters.Builder parameters = FunctionParameters.builder();
+        tool.parameters().forEach((key, value) -> parameters.putAdditionalProperty(key, JsonValue.from(value)));
         return ChatCompletionFunctionTool.builder()
                 .function(FunctionDefinition.builder()
                         .name(tool.name())
                         .description(tool.description())
-                        .parameters(FunctionParameters.builder()
-                                .putAdditionalProperty("type", JsonValue.from("object"))
-                                .putAdditionalProperty("properties", JsonValue.from(tool.properties()))
-                                .putAdditionalProperty("required", JsonValue.from(tool.required()))
-                                .putAdditionalProperty("additionalProperties", JsonValue.from(false))
-                                .build())
+                        .parameters(parameters.build())
                         .build())
                 .build();
     }
 
-    static OrderTools.ToolOutput runTool(ChatCompletionMessageFunctionToolCall call) {
+    static OrderTools.ToolOutput runTool(ChatCompletionMessageFunctionToolCall call, List<OrderTools.Tool> tools) {
         Map<String, Object> args;
         try {
             // 인자가 JSON 문자열로 온다
             args = Json.MAPPER.readValue(call.function().arguments(), new TypeReference<>() {});
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return new OrderTools.ToolOutput("오류: 인자가 JSON 객체가 아니다: " + e.getOriginalMessage(), true);
         }
-        return OrderTools.run(call.function().name(), args);
+        return OrderTools.run(call.function().name(), args, tools);
     }
 
     static AgentResult runAgent(OpenAIClient client, String model, String inquiry, OrderTools.ToolListener listener) {
+        return runAgent(client, model, inquiry, listener, OrderTools.SYSTEM, OrderTools.TOOLS);
+    }
+
+    /** system과 tools를 바꿔 끼우면 같은 루프로 다른 에이전트가 된다. */
+    static AgentResult runAgent(OpenAIClient client, String model, String inquiry, OrderTools.ToolListener listener,
+            String system, List<OrderTools.Tool> tools) {
         // 빌더가 대화 기록을 들고 있다. 시스템 프롬프트는 첫 메시지로 넣는다.
         ChatCompletionCreateParams.Builder params = ChatCompletionCreateParams.builder()
                 .model(model)
-                .addSystemMessage(OrderTools.SYSTEM)
+                .addSystemMessage(system)
                 .addUserMessage("<inquiry>\n" + inquiry + "\n</inquiry>");
-        OrderTools.TOOLS.forEach(tool -> params.addTool(definition(tool)));
+        tools.forEach(tool -> params.addTool(definition(tool)));
 
         for (int n = 0; n < OrderTools.MAX_MODEL_CALLS; n++) {
             ChatCompletion completion = client.chat().completions().create(params.build());
@@ -80,7 +83,7 @@ public class OpenAiCompatOrderAgent {
             // Tool 결과는 호출 하나마다 role이 tool인 메시지 하나로 돌려준다
             for (ChatCompletionMessageToolCall toolCall : toolCalls) {
                 toolCall.function().ifPresent(call -> {
-                    OrderTools.ToolOutput output = runTool(call);
+                    OrderTools.ToolOutput output = runTool(call, tools);
                     listener.onTool(call.function().name(), call.function().arguments(), output);
                     // 오류 표시 칸이 따로 없으므로 오류 여부는 content의 문장으로 알린다
                     params.addMessage(ChatCompletionToolMessageParam.builder()

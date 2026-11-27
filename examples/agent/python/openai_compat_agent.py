@@ -16,26 +16,32 @@ from openai import OpenAI
 from agent_result import AgentResult, done, stopped
 from order_tools import MAX_MODEL_CALLS, SYSTEM, TOOLS, log_tool_call, run_tool
 
-# OpenAI 호환 Tool 정의: {"type": "function", "function": {...}}로 감싸고 스키마를 parameters에 넣는다
-TOOL_DEFINITIONS = [
-    {"type": "function",
-     "function": {"name": tool.name, "description": tool.description, "parameters": tool.parameters}}
-    for tool in TOOLS
-]
+def tool_definitions(tools) -> list[dict]:
+    """OpenAI 호환 Tool 정의: {"type": "function", "function": {...}}로 감싸고 스키마를 parameters에 넣는다."""
+    return [
+        {"type": "function",
+         "function": {"name": tool.name, "description": tool.description, "parameters": tool.parameters}}
+        for tool in tools
+    ]
 
 
-def run_agent(inquiry: str, client=None, model=None, on_tool=log_tool_call) -> AgentResult:
-    """on_tool(name, args, output, is_error)은 Tool을 실행할 때마다 불린다."""
+def run_agent(inquiry: str, client=None, model=None, on_tool=log_tool_call,
+              system: str = SYSTEM, tools=TOOLS) -> AgentResult:
+    """system과 tools를 바꿔 끼우면 같은 루프로 다른 에이전트가 된다.
+
+    on_tool(name, args, output, is_error)은 Tool을 실행할 때마다 불린다.
+    """
     client = client or OpenAI()  # OPENAI_API_KEY, OPENAI_BASE_URL 환경변수를 읽는다
     model = model or os.environ["OPENAI_MODEL"]
     # 시스템 프롬프트는 messages의 첫 메시지로 넣는다
+    definitions = tool_definitions(tools)
     messages = [
-        {"role": "system", "content": SYSTEM},
+        {"role": "system", "content": system},
         {"role": "user", "content": f"<inquiry>\n{inquiry}\n</inquiry>"},
     ]
 
     for _ in range(MAX_MODEL_CALLS):
-        completion = client.chat.completions.create(model=model, messages=messages, tools=TOOL_DEFINITIONS)
+        completion = client.chat.completions.create(model=model, messages=messages, tools=definitions)
         choice = completion.choices[0]
         if choice.finish_reason in ("length", "content_filter"):
             return stopped(f"finish_reason={choice.finish_reason}")
@@ -59,7 +65,7 @@ def run_agent(inquiry: str, client=None, model=None, on_tool=log_tool_call) -> A
         for call in tool_calls:
             try:
                 args = json.loads(call.function.arguments)  # 인자가 JSON 문자열로 온다
-                output, is_error = run_tool(call.function.name, args)
+                output, is_error = run_tool(call.function.name, args, tools)
             except json.JSONDecodeError as e:
                 args, output, is_error = call.function.arguments, f"오류: 인자가 JSON이 아니다: {e}", True
             on_tool(call.function.name, args, output, is_error)

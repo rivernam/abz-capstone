@@ -1,4 +1,3 @@
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -13,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import tools.jackson.core.type.TypeReference;
 
 /**
  * 추적, 모니터링, 비용 집계.

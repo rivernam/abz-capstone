@@ -1,13 +1,14 @@
 # 에이전트 구조와 샘플 코드
 
-LLM 에이전트를 만들 때 쓰는 일반적인 구조를 Python과 Java 샘플로 보여 준다. 두 부분으로 이루어진다.
+LLM 에이전트를 만들 때 쓰는 일반적인 구조를 Python과 Java 샘플로 보여 준다. 세 부분으로 이루어진다.
 
 - [기본 구조](#기본-구조): 에이전트 루프. 같은 에이전트를 Claude API와 OpenAI 호환 API 두 가지로 만들었다.
+- [Skills와 MCP](#skills와-mcp): 지침과 Tool을 루프 바깥에서 가져오는 방법 두 가지.
 - [운영 요소](#운영-요소): 실제 서비스로 만들 때 루프 바깥에 붙이는 것 네 가지.
 
 ## 파일
 
-Python은 `python/`, Java는 `java/src/main/java/`에 있다.
+Python은 `python/`, Java는 `java/src/main/java/`에 있다. 스킬 폴더 `skills/`는 두 언어가 함께 쓴다.
 
 | 구분 | 내용 | Python | Java |
 |---|---|---|---|
@@ -15,12 +16,16 @@ Python은 `python/`, Java는 `java/src/main/java/`에 있다.
 | 기본 구조 | 에이전트 실행 결과 | `agent_result.py` | `AgentResult.java` |
 | 기본 구조 | Claude API(Messages API)로 만든 루프 | `claude_agent.py` | `ClaudeOrderAgent.java` |
 | 기본 구조 | OpenAI 호환 API(Chat Completions)로 만든 루프 | `openai_compat_agent.py` | `OpenAiCompatOrderAgent.java` |
+| Skills와 MCP | 환경변수로 고른 API로 에이전트를 돌린다 | `agent_runner.py` | `AgentRunner.java` |
+| Skills와 MCP | 스킬 목록과 스킬 읽기 Tool | `skills.py` | `Skills.java` |
+| Skills와 MCP | 주문 Tool을 내놓는 MCP 서버 | `mcp_order_server.py` | `McpOrderServer.java` |
+| Skills와 MCP | MCP 서버의 Tool을 받아 오는 클라이언트 | `mcp_tools.py` | `McpTools.java` |
 | 운영 요소 | 모델 호출 하나로 두 API를 감싼다 | `llm.py` | `Llm.java` |
 | 운영 요소 | 대화 기록과 장기 메모리 | `memory.py` | `MemoryChat.java` |
 | 운영 요소 | 추적, 모니터링, 비용 집계 | `tracing.py` | `Tracing.java` |
 | 운영 요소 | 인증과 권한, 동시 실행, 재시도 큐 | `service.py` | `AgentService.java` |
 | 운영 요소 | 여러 에이전트로 나누는 구조 | `multi_agent.py` | `MultiAgent.java` |
-| 시험 | 가짜 클라이언트와 가짜 모델로 돈다 | `tests/test_agents.py`, `tests/test_ops.py` | `src/test/java/SampleTests.java` (`java/` 기준) |
+| 시험 | 가짜 클라이언트와 가짜 모델로 돈다 | `tests/` 아래 `test_agents.py`, `test_skills.py`, `test_mcp.py`, `test_ops.py` | `src/test/java/SampleTests.java` (`java/` 기준) |
 
 ## 실행
 
@@ -33,7 +38,7 @@ Python은 `python/`, Java는 `java/src/main/java/`에 있다.
 
 OpenAI 호환 API는 OpenAI, vLLM, Ollama, LiteLLM처럼 `/v1/chat/completions`를 제공하는 서버에 쓴다. 기본 구조 샘플은 Tool 호출을 지원하는 모델이어야 한다.
 
-운영 요소 샘플은 `LLM_PROVIDER=openai`이면 OpenAI 호환 API를, 그 외에는 Claude API를 쓴다. `service.py`와 `AgentService`는 가짜 에이전트로 돌아서 API 키가 필요 없다.
+Skills, MCP, 운영 요소 샘플은 `LLM_PROVIDER=openai`이면 OpenAI 호환 API를, 그 외에는 Claude API를 쓴다. `service.py`와 `AgentService`는 가짜 에이전트로 돌아서 API 키가 필요 없다.
 
 ### Python
 
@@ -43,6 +48,9 @@ pip install -r requirements.txt
 
 python claude_agent.py           # 기본 구조: Claude API
 python openai_compat_agent.py    # 기본 구조: OpenAI 호환 API
+
+python skills.py                 # Skills
+python mcp_tools.py              # MCP: 주문 서버를 하위 프로세스로 띄워 쓴다
 
 python memory.py                 # 운영 요소
 python tracing.py
@@ -58,6 +66,9 @@ Java 17 이상과 Maven이 필요하다.
 cd java
 mvn -q compile exec:java "-Dexec.mainClass=ClaudeOrderAgent"
 mvn -q compile exec:java "-Dexec.mainClass=OpenAiCompatOrderAgent"
+
+mvn -q compile exec:java "-Dexec.mainClass=Skills"
+mvn -q compile exec:java "-Dexec.mainClass=McpTools"       # 주문 서버를 하위 프로세스로 띄워 쓴다
 
 mvn -q compile exec:java "-Dexec.mainClass=MemoryChat"
 mvn -q compile exec:java "-Dexec.mainClass=Tracing"
@@ -79,7 +90,7 @@ cd ../java
 mvn -q test-compile exec:java "-Dexec.mainClass=SampleTests" "-Dexec.classpathScope=test"
 ```
 
-Java 시험은 시험 도구 없이 `main`으로 돌고, 실패가 있으면 종료 코드 1로 끝난다.
+Java 시험은 시험 도구 없이 `main`으로 돌고, 실패가 있으면 종료 코드 1로 끝난다. MCP 시험은 주문 서버를 실제 하위 프로세스로 띄워 왕복한다. Python은 `mcp` 패키지가 없으면 MCP 시험만 건너뛴다.
 
 ## 기본 구조
 
@@ -141,6 +152,7 @@ Tool 등록과 실행은 두 루프가 함께 쓴다. API를 바꿀 때 달라�
 - **안전 검사는 Tool 구현 안에 있다.** "배송중이면 취소하지 마라"를 프롬프트에 적는 대신 `cancel_order`가 상태를 확인한다. 프롬프트의 금지 사항은 뚫릴 수 있다.
 - **외부 입력은 데이터로 다룬다.** 고객 문의를 `<inquiry>`로 감싸고, 그 안의 지시를 따르지 않는다고 시스템 프롬프트에 적는다.
 - **호출 상한을 둔다.** 모델이 Tool을 끝없이 부르는 경우에 대비해 `MAX_MODEL_CALLS`번에서 멈춘다.
+- **시스템 프롬프트와 Tool 목록은 인자다.** `run_agent(..., system=..., tools=...)`로 바꿔 끼우면 같은 루프로 다른 에이전트가 된다. 아래 Skills와 MCP가 이 자리를 쓴다.
 - **결과는 객체로 돌려준다.** `AgentResult`의 `status`가 `done`이면 `text`가 최종 답이고, `stopped`이면 `reason`에 멈춘 이유가 있다. 부르는 쪽이 글의 앞머리를 보고 성공 여부를 가릴 필요가 없다.
 - **Tool 호출은 콜백으로 알린다.** 루프가 화면에 직접 찍지 않고 `on_tool`(Java는 `ToolListener`)을 부른다. 기본값은 로거에 남긴다.
 
@@ -149,6 +161,105 @@ Tool 등록과 실행은 두 루프가 함께 쓴다. API를 바꿀 때 달라�
 - **SDK가 제공하는 루프**: Claude SDK의 Tool Runner처럼 이 루프를 대신 돌려 주는 도구가 있다. 동작을 이해한 뒤에는 그쪽이 코드가 적다.
 - **스트리밍**: 답을 글자 단위로 받아 화면에 바로 보여 주는 방식이다.
 - **거절 처리**: Claude API는 안전 분류기가 요청을 거절하면 `stop_reason`이 `refusal`이다. 샘플은 중단만 한다. 서버 측 `fallbacks` 옵션을 켜면 다른 모델로 이어서 처리한다.
+
+## Skills와 MCP
+
+둘 다 에이전트 루프를 바꾸지 않는다. 기본 구조의 네 부분 중 시스템 프롬프트와 Tool을 바깥에서 공급하는 방법이다.
+
+| | Skills | MCP |
+|---|---|---|
+| 채우는 자리 | 시스템 프롬프트(지식과 절차) | Tool 정의와 Tool 구현 |
+| 실체 | `SKILL.md`가 든 폴더 | 별도 프로세스로 도는 서버 |
+| 풀려는 문제 | 지침을 전부 프롬프트에 넣으면 길어지고 비싸진다 | Tool을 에이전트마다 다시 만들어야 한다 |
+| 방식 | 이름과 설명만 먼저 보여 주고, 필요할 때 본문을 읽게 한다 | 표준 프로토콜로 Tool을 한 번 만들어 여러 에이전트가 같이 쓴다 |
+
+### Skills
+
+스킬은 폴더 하나이고, `SKILL.md` 맨 위에 이름과 설명을 적는다. 설명에는 무엇을 하는지와 언제 쓰는지를 함께 적는다. 모델이 이 설명만 보고 고르기 때문이다.
+
+```markdown
+---
+name: order-cancel
+description: 고객이 주문 취소나 환불 시점을 물을 때 쓴다. 취소 가능 조건, 환불 안내, 취소가 안 될 때의 대안을 다룬다.
+---
+
+# 주문 취소 처리
+(절차와 안내 문구)
+```
+
+동작은 세 단계다.
+
+1. 시작할 때 폴더마다 머리말만 읽어 스킬 목록을 만든다.
+2. 시스템 프롬프트에 목록(이름과 설명)만 붙인다. 본문은 넣지 않는다.
+3. 모델이 문의에 맞는 스킬을 고르면 `read_skill` Tool로 본문을 읽고, 그 절차대로 처리한다.
+
+```python
+skills = load_skills()
+result = run_agent_from_env(
+    "A-100 주문 취소해 주세요. 환불은 언제 되나요?",
+    system=SYSTEM + skill_catalog(skills),      # 목록만 붙인다
+    tools=[*TOOLS, read_skill_tool(skills)],    # Tool 하나를 더한다
+)
+```
+
+"환불은 영업일 기준 3일 안에 된다"는 내용은 `order-cancel` 스킬 본문에만 있다. 모델은 스킬을 읽어야 이 답을 할 수 있다.
+
+코드에서 볼 부분:
+
+- **`read_skill`은 목록에 있는 이름만 읽는다.** 모델이 넘긴 값을 파일 경로로 쓰지 않으므로 임의의 파일을 읽게 할 수 없다.
+- **스킬이 수십 개여도 평소 프롬프트는 짧다.** 늘어나는 것은 스킬 하나당 한 줄이다.
+- **머리말은 `키: 값` 줄만 읽는다.** 샘플을 단순하게 하려는 것이고, 실제 스킬 머리말은 YAML이다.
+
+지침이 적고 항상 필요하면 시스템 프롬프트에 그대로 두는 편이 단순하다. 스킬은 지침이 여러 종류이고 요청마다 필요한 것이 다를 때 쓴다.
+
+### MCP
+
+MCP(Model Context Protocol)는 Tool을 가진 쪽(서버)과 에이전트 쪽(클라이언트)이 주고받는 표준 프로토콜이다. 서버는 로컬 프로세스(표준 입출력)나 원격(HTTP)으로 돈다. 샘플은 표준 입출력을 쓴다.
+
+```
+에이전트 프로세스                         MCP 서버 프로세스
+┌──────────────────────┐   Tool 목록 요청   ┌────────────────────┐
+│ 에이전트 루프          │ ───────────────▶ │ get_order           │
+│   tools = 서버의 Tool │ ◀─────────────── │ cancel_order        │
+│                      │   Tool 호출       │ (안전 검사는 여기)    │
+│ MCP 클라이언트         │ ───────────────▶ │ 주문 데이터          │
+└──────────────────────┘ ◀─── 결과 ─────── └────────────────────┘
+```
+
+서버는 기본 구조의 Tool 구현을 그대로 내놓는다.
+
+```python
+server = MCPServer("orders")
+
+@server.tool()
+def cancel_order(order_id: str) -> dict:
+    """주문을 취소한다. 결제완료 상태일 때만 된다. 먼저 get_order로 상태를 확인한다."""
+    return refusal_as_mcp_error(order_tools.cancel_order, order_id)
+
+server.run()  # 표준 입출력으로 요청을 받는다
+```
+
+클라이언트는 서버의 Tool 목록을 에이전트가 쓰는 `Tool`로 바꾼다. Tool의 구현 자리에는 "서버에 호출을 보내는 함수"가 들어간다.
+
+```python
+with McpConnection(order_server()) as connection:
+    result = run_agent_from_env("A-100이랑 A-200 주문 둘 다 취소해 주세요.", tools=connection.tools())
+```
+
+코드에서 볼 부분:
+
+- **Tool은 서버 프로세스에서 실행된다.** 주문 데이터와 안전 검사도 서버에 있다. 서버를 누가 부르든 같은 검사가 걸린다.
+- **의도한 거절과 버그의 구분이 MCP에도 있다.** 서버는 거절을 오류 결과(`is_error`)와 사유로 돌려주고, 클라이언트는 그것을 `ToolError`로 바꿔 모델에게 사유가 가게 한다. 버그는 서버에 기록되고 모델에게는 내용이 가지 않는다.
+- **서버에서 받은 Tool은 `strict`를 끈다.** 스키마를 서버가 만들기 때문에 엄격 모드의 조건을 맞춘다는 보장이 없다. 인자는 서버가 다시 검사한다.
+- **서버의 표준 출력은 프로토콜 전용이다.** 서버 코드에서 표준 출력에 글을 찍으면 통신이 깨진다. 기록은 표준 오류로 보낸다.
+- **Python 클라이언트는 비동기다.** 샘플의 루프는 동기라서, `McpConnection`이 연결을 별도 스레드에 두고 호출만 넘긴다. Java SDK에는 동기 클라이언트가 있어 그대로 쓴다.
+- **서버와 클라이언트의 언어는 달라도 된다.** Python 클라이언트로 Java 서버(`McpOrderServer`)를 호출해 같은 결과가 나오는 것을 확인했다.
+
+Tool을 에이전트 하나만 쓰면 함수로 두는 편이 단순하다. MCP는 Tool을 여러 에이전트나 여러 팀이 같이 쓸 때, 또는 이미 만들어진 서버를 붙일 때 쓴다. 남이 만든 서버를 붙이면 그 서버의 Tool 설명과 결과가 모델에 그대로 들어가므로, 믿을 수 있는 서버만 연결한다.
+
+### 두 API에서
+
+샘플은 Skills와 MCP를 직접 구현했기 때문에 Claude API와 OpenAI 호환 API에서 똑같이 돈다. Claude API에는 이와 별도로 API 차원의 지원이 있다. 원격 MCP 서버를 요청에 적어 주면 API 쪽에서 연결하는 기능(베타)과, 코드 실행 Tool과 함께 쓰는 Skills 기능이다. 대부분의 OpenAI 호환 서버에는 이런 지원이 없어서 샘플처럼 직접 구현한다.
 
 ## 운영 요소
 
@@ -345,6 +456,7 @@ reply = complete(SYNTHESIS_SYSTEM, [...])             # 지휘자: 결과를 모
 
 ## 확인한 범위
 
-- **Python**: 시험 31개가 통과한다. 두 에이전트 루프는 가짜 클라이언트로, 운영 요소 네 가지는 가짜 모델 함수로 확인했다. `service.py`는 그대로 실행했다.
-- **Java**: `anthropic-java` 3.3.0과 `openai-java` 4.114.0에 대해 컴파일을 확인했고, `SampleTests` 19개가 통과한다. `AgentService`는 `main`을 그대로 실행했다. 두 에이전트 루프는 SDK 응답 객체가 필요해 컴파일만 확인했다.
-- **확인하지 않은 것**: 실제 API 호출과 `mvn` 명령. Java는 `javac`와 `java`로 직접 돌렸다.
+- **Python**: 시험 42개가 통과한다. 두 에이전트 루프는 가짜 클라이언트로, 운영 요소 네 가지는 가짜 모델 함수로 확인했다. MCP는 주문 서버를 실제 하위 프로세스로 띄워 왕복했다(`mcp` 2.3.0). `service.py`는 그대로 실행했다.
+- **Java**: Maven 3.9.16으로 빌드했고 `SampleTests` 26개가 통과한다. 두 에이전트 루프는 시험 안에서 가짜 API 서버를 띄워, SDK가 실제로 HTTP 요청을 보내고 응답을 읽는 경로로 끝까지 실행했다. MCP는 `McpOrderServer`를 실제 하위 프로세스로 띄워 왕복했다(MCP Java SDK 2.2.0). `AgentService`는 `mvn` 명령 그대로 실행했다.
+- **Java의 JSON 라이브러리**: 샘플 코드는 Jackson 3(3.3.0)을 쓴다. Claude·OpenAI SDK는 내부에서 Jackson 2를 쓰므로 Jackson 2도 클래스 경로에 함께 있다. 두 계열이 같이 쓰는 `jackson-annotations`의 버전은 `pom.xml`의 `jackson-bom`이 맞춘다.
+- **확인하지 않은 것**: 실제 LLM API 호출. API 키가 필요한 `main`들은 실행해 보지 않았다.

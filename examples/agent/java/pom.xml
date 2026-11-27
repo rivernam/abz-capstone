@@ -13,6 +13,22 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
+  <!-- Jackson 3 계열의 버전을 한 곳에서 맞춘다.
+       Claude·OpenAI SDK는 내부에서 Jackson 2를 쓰고, 두 계열은 jackson-annotations를 함께 쓴다.
+       이 BOM이 없으면 Maven이 Jackson 2 쪽의 낮은 jackson-annotations를 골라
+       Jackson 3이 실행 중에 클래스를 찾지 못한다 -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>3.3.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>com.anthropic</groupId>
@@ -24,11 +40,22 @@
       <artifactId>openai-java</artifactId>
       <version>4.114.0</version>
     </dependency>
-    <!-- 코드가 Jackson을 직접 쓴다. SDK가 끌어오는 것에 기대지 않고 적어 둔다 -->
+    <!-- MCP 샘플(McpOrderServer, McpTools)에만 필요하다 -->
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp</artifactId>
+      <version>2.2.0</version>
+    </dependency>
+    <!-- MCP SDK의 기록(SLF4J)을 끈다. MCP 서버는 표준 출력을 프로토콜에만 써야 한다 -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-nop</artifactId>
+      <version>2.0.20</version>
+    </dependency>
+    <!-- 샘플 코드가 직접 쓰는 JSON 라이브러리(Jackson 3). 버전은 위의 jackson-bom이 정한다 -->
+    <dependency>
+      <groupId>tools.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>2.19.4</version>
     </dependency>
   </dependencies>
 </project>

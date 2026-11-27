@@ -11,22 +11,30 @@ from order_tools import MAX_MODEL_CALLS, SYSTEM, TOOLS, log_tool_call, run_tool
 
 MODEL = "claude-opus-5-5"
 
-# Claude의 Tool 정의: 스키마를 input_schema에 넣는다
-TOOL_DEFINITIONS = [
-    {"name": tool.name, "description": tool.description, "input_schema": tool.parameters, "strict": True}
-    for tool in TOOLS
-]
+def tool_definitions(tools) -> list[dict]:
+    """Claude의 Tool 정의: 스키마를 input_schema에 넣는다."""
+    definitions = []
+    for tool in tools:
+        definition = {"name": tool.name, "description": tool.description, "input_schema": tool.parameters}
+        if tool.strict:
+            definition["strict"] = True
+        definitions.append(definition)
+    return definitions
 
 
-def run_agent(inquiry: str, client=None, on_tool=log_tool_call) -> AgentResult:
-    """on_tool(name, args, output, is_error)은 Tool을 실행할 때마다 불린다."""
+def run_agent(inquiry: str, client=None, on_tool=log_tool_call, system: str = SYSTEM, tools=TOOLS) -> AgentResult:
+    """system과 tools를 바꿔 끼우면 같은 루프로 다른 에이전트가 된다.
+
+    on_tool(name, args, output, is_error)은 Tool을 실행할 때마다 불린다.
+    """
     client = client or anthropic.Anthropic()  # ANTHROPIC_API_KEY 환경변수를 읽는다
+    definitions = tool_definitions(tools)
     messages = [{"role": "user", "content": f"<inquiry>\n{inquiry}\n</inquiry>"}]
 
     for _ in range(MAX_MODEL_CALLS):
         # 시스템 프롬프트는 messages가 아니라 system 인자로 넘긴다
         response = client.messages.create(
-            model=MODEL, max_tokens=16000, system=SYSTEM, tools=TOOL_DEFINITIONS, messages=messages,
+            model=MODEL, max_tokens=16000, system=system, tools=definitions, messages=messages,
         )
         if response.stop_reason in ("refusal", "max_tokens"):
             return stopped(f"stop_reason={response.stop_reason}")
@@ -41,7 +49,7 @@ def run_agent(inquiry: str, client=None, on_tool=log_tool_call) -> AgentResult:
         results = []
         for block in response.content:
             if block.type == "tool_use":
-                output, is_error = run_tool(block.name, block.input)  # input은 이미 dict다
+                output, is_error = run_tool(block.name, block.input, tools)  # input은 이미 dict다
                 on_tool(block.name, block.input, output, is_error)
                 results.append({"type": "tool_result", "tool_use_id": block.id,
                                 "content": output, "is_error": is_error})

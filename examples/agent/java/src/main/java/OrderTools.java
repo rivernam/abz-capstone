@@ -1,10 +1,8 @@
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * 두 에이전트가 함께 쓰는 부분: 시스템 프롬프트, 가상 데이터, Tool.
@@ -85,21 +83,37 @@ public final class OrderTools {
     record Tool(
             String name,
             String description,
-            Map<String, Map<String, Object>> properties, // 인자 이름 -> JSON 스키마
-            List<String> required,
-            Function<Map<String, Object>, Map<String, Object>> handler) {}
+            Map<String, Object> parameters, // 입력 JSON 스키마. API마다 감싸는 모양만 다르다
+            boolean strict, // 스키마를 엄격하게 지키게 할지. 직접 쓴 스키마가 아니면 끈다
+            Function<Map<String, Object>, Object> handler) { // Map은 JSON으로, String은 그대로 모델에게 돌려준다
 
-    static final Map<String, Map<String, Object>> ORDER_ID_PROPERTIES = Map.of(
-            "order_id", Map.of("type", "string", "description", "주문 번호. 예: A-100"));
+        Tool(String name, String description, Map<String, Object> parameters,
+                Function<Map<String, Object>, Object> handler) {
+            this(name, description, parameters, true, handler);
+        }
+
+        /** 인자 이름 -> 그 인자의 JSON 스키마. */
+        @SuppressWarnings("unchecked")
+        Map<String, Map<String, Object>> properties() {
+            return parameters.get("properties") instanceof Map<?, ?> map ? (Map<String, Map<String, Object>>) map : Map.of();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<String> required() {
+            return parameters.get("required") instanceof List<?> list ? (List<String>) list : List.of();
+        }
+    }
+
+    static final Map<String, Object> ORDER_ID_SCHEMA = Map.of(
+            "type", "object",
+            "properties", Map.of("order_id", Map.of("type", "string", "description", "주문 번호. 예: A-100")),
+            "required", List.of("order_id"),
+            "additionalProperties", false);
 
     static final List<Tool> TOOLS = List.of(
-            new Tool("get_order", "주문 번호로 주문 상태와 금액을 조회한다.",
-                    ORDER_ID_PROPERTIES, List.of("order_id"), OrderTools::getOrder),
+            new Tool("get_order", "주문 번호로 주문 상태와 금액을 조회한다.", ORDER_ID_SCHEMA, OrderTools::getOrder),
             new Tool("cancel_order", "주문을 취소한다. 결제완료 상태일 때만 된다. 먼저 get_order로 상태를 확인한다.",
-                    ORDER_ID_PROPERTIES, List.of("order_id"), OrderTools::cancelOrder));
-
-    static final Map<String, Tool> TOOLS_BY_NAME =
-            TOOLS.stream().collect(Collectors.toUnmodifiableMap(Tool::name, tool -> tool));
+                    ORDER_ID_SCHEMA, OrderTools::cancelOrder));
 
     /** 인자가 스키마에 맞는지 확인한다. 이 샘플의 스키마(문자열 인자만 있는 객체)만 다룬다. */
     static void checkArgs(Tool tool, Map<String, Object> args) {
@@ -124,17 +138,34 @@ public final class OrderTools {
 
     record ToolOutput(String text, boolean isError) {}
 
-    /** 이름으로 Tool을 찾아 실행한다. 오류도 모델에게 알려야 모델이 다음 판단을 한다. */
+    static final String INTERNAL_ERROR = "Tool 내부 오류가 났다. 같은 요청을 반복하지 말고 사용자에게 알린다.";
+
     static ToolOutput run(String name, Map<String, Object> args) {
-        Tool tool = TOOLS_BY_NAME.get(name);
-        if (tool == null) {
-            return new ToolOutput("오류: Tool " + name + "이(가) 없다.", true);
+        return run(name, args, TOOLS);
+    }
+
+    /** tools에서 이름으로 Tool을 찾아 실행한다. 오류도 모델에게 알려야 모델이 다음 판단을 한다. */
+    static ToolOutput run(String name, Map<String, Object> args, List<Tool> tools) {
+        for (Tool tool : tools) {
+            if (tool.name().equals(name)) {
+                return execute(tool, args);
+            }
         }
-        return execute(tool, args);
+        return new ToolOutput("오류: Tool " + name + "이(가) 없다.", true);
     }
 
     /**
-     * Tool 하나를 실행한다.
+     * Tool 하나를 실행해 결과 글을 돌려준다. 인자가 스키마에 맞지 않거나 Tool이 거절하면 ToolException을 던진다.
+     * 그 밖의 예외는 Tool 구현의 버그이고, 그대로 던진다.
+     */
+    static String call(Tool tool, Map<String, Object> args) {
+        checkArgs(tool, args);
+        Object result = tool.handler().apply(args);
+        return result instanceof String text ? text : Json.MAPPER.writeValueAsString(result);
+    }
+
+    /**
+     * Tool 하나를 실행해 모델에게 돌려줄 결과로 바꾼다.
      *
      * <ul>
      *   <li>의도한 거절(ToolException): 사유를 그대로 돌려준다.
@@ -143,13 +174,12 @@ public final class OrderTools {
      */
     static ToolOutput execute(Tool tool, Map<String, Object> args) {
         try {
-            checkArgs(tool, args);
-            return new ToolOutput(Json.MAPPER.writeValueAsString(tool.handler().apply(args)), false);
+            return new ToolOutput(call(tool, args), false);
         } catch (ToolException e) {
             return new ToolOutput("오류: " + e.getMessage(), true);
-        } catch (RuntimeException | JsonProcessingException e) {
+        } catch (RuntimeException e) {
             LOGGER.log(System.Logger.Level.ERROR, "Tool " + tool.name() + " 실행 중 예상하지 못한 오류", e);
-            return new ToolOutput("오류: Tool 내부 오류가 났다. 같은 요청을 반복하지 말고 사용자에게 알린다.", true);
+            return new ToolOutput("오류: " + INTERNAL_ERROR, true);
         }
     }
 

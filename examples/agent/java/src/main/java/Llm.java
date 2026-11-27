@@ -3,8 +3,6 @@ import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.StopReason;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.chat.completions.ChatCompletion;
@@ -14,6 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 
 /**
  * 운영 요소 샘플이 함께 쓰는 모델 호출 인터페이스. 글을 넣으면 글이 나오는 가장 단순한 모양이다.
@@ -105,12 +105,12 @@ public interface Llm {
             JsonNode node = Json.MAPPER.readTree(text.substring(start, end + 1));
             if (node.isArray()) {
                 for (JsonNode item : node) {
-                    if (item.isTextual()) {
-                        items.add(item.asText());
+                    if (item.isString()) {
+                        items.add(item.asString());
                     }
                 }
             }
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             // 읽지 못하면 빈 목록
         }
         return items;

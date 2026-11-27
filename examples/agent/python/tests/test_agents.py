@@ -57,14 +57,13 @@ def test_run_tool_refusals_are_reported_to_the_model():
     assert order_tools.run_tool("get_order", ["A-100"])[1] is True
 
 
-def test_run_tool_logs_bugs_and_hides_details(monkeypatch, caplog):
+def test_run_tool_logs_bugs_and_hides_details(caplog):
     def broken(order_id):
         raise KeyError("secret-internal-detail")
 
     tool = order_tools.Tool("get_order", "d", order_tools.ORDER_ID_SCHEMA, broken)
-    monkeypatch.setitem(order_tools.TOOLS_BY_NAME, "get_order", tool)
     with caplog.at_level(logging.ERROR, logger="agent.tools"):
-        output, is_error = order_tools.run_tool("get_order", {"order_id": "A-100"})
+        output, is_error = order_tools.run_tool("get_order", {"order_id": "A-100"}, [tool])
     assert is_error and "secret-internal-detail" not in output
     assert "secret-internal-detail" in caplog.text  # 기록에는 남는다
 

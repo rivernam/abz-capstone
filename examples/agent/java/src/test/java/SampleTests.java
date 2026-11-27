@@ -1,3 +1,12 @@
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.sun.net.httpserver.HttpServer;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -9,12 +18,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import tools.jackson.databind.JsonNode;
 
 /**
  * 샘플 시험. 시험 도구 없이 main으로 돈다. 가짜 모델을 쓰므로 API 키가 필요 없다.
  *
- * <p>에이전트 루프(ClaudeOrderAgent, OpenAiCompatOrderAgent)는 SDK 응답 객체가 필요해서 여기서 다루지 않는다.
+ * <p>에이전트 루프(ClaudeOrderAgent, OpenAiCompatOrderAgent)는 이 프로세스 안에 가짜 API 서버를 띄워 시험한다. SDK가 실제로
+ * HTTP 요청을 보내고 응답 JSON을 읽는 경로를 그대로 지난다.
  */
 public class SampleTests {
 
@@ -54,6 +66,36 @@ public class SampleTests {
         throw new AssertionError(type.getSimpleName() + " 예외가 나지 않았다");
     }
 
+    /** 정해 둔 응답을 차례로 돌려주고 받은 요청 본문을 적어 두는 가짜 API 서버. */
+    static HttpServer fakeApi(List<String> responses, List<String> requests) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        AtomicInteger served = new AtomicInteger();
+        server.createContext("/", exchange -> {
+            requests.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            int index = Math.min(served.getAndIncrement(), responses.size() - 1);
+            byte[] body = responses.get(index).getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            try (OutputStream out = exchange.getResponseBody()) {
+                out.write(body);
+            }
+        });
+        server.start();
+        return server;
+    }
+
+    static String claudeResponse(String stopReason, String content) {
+        return "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-opus-5-5\","
+                + "\"content\":[" + content + "],\"stop_reason\":\"" + stopReason + "\",\"stop_sequence\":null,"
+                + "\"usage\":{\"input_tokens\":10,\"output_tokens\":5}}";
+    }
+
+    static String openAiResponse(String finishReason, String message) {
+        return "{\"id\":\"chatcmpl-1\",\"object\":\"chat.completion\",\"created\":1,\"model\":\"m\","
+                + "\"choices\":[{\"index\":0,\"finish_reason\":\"" + finishReason + "\",\"message\":" + message + "}],"
+                + "\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5,\"total_tokens\":15}}";
+    }
+
     static Llm.Reply reply(String text) {
         return new Llm.Reply(text, "claude-opus-5-5", 1000, 500);
     }
@@ -83,8 +125,8 @@ public class SampleTests {
             check(OrderTools.run("get_order", null).isError(), "객체가 아닌 인자");
         });
         test("Tool 구현의 버그는 내부 사정을 숨기고 오류로 돌아온다", () -> {
-            OrderTools.Tool broken = new OrderTools.Tool("get_order", "d", OrderTools.ORDER_ID_PROPERTIES,
-                    List.of("order_id"), a -> { throw new IllegalStateException("secret-internal-detail"); });
+            OrderTools.Tool broken = new OrderTools.Tool("get_order", "d", OrderTools.ORDER_ID_SCHEMA,
+                    a -> { throw new IllegalStateException("secret-internal-detail"); });
             OrderTools.ToolOutput output = OrderTools.execute(broken, Map.of("order_id", "A-100"));
             check(output.isError() && !output.text().contains("secret-internal-detail"), output.text());
         });
@@ -92,6 +134,90 @@ public class SampleTests {
             check(AgentResult.done("답").ok() && AgentResult.done("답").display().equals("답"), "done");
             AgentResult stopped = AgentResult.stopped("상한");
             check(!stopped.ok() && stopped.text().isEmpty() && stopped.display().equals("[중단] 상한"), "stopped");
+        });
+
+        // ── 에이전트 루프: 가짜 API 서버로 끝까지 실행한다 ──
+        test("Claude 루프는 Tool을 실행하고 결과를 user 메시지 하나로 돌려준다", () -> {
+            OrderTools.resetOrders();
+            List<String> requests = Collections.synchronizedList(new ArrayList<>());
+            HttpServer server = fakeApi(List.of(
+                    claudeResponse("tool_use",
+                            "{\"type\":\"tool_use\",\"id\":\"t1\",\"name\":\"cancel_order\",\"input\":{\"order_id\":\"A-100\"}},"
+                                    + "{\"type\":\"tool_use\",\"id\":\"t2\",\"name\":\"cancel_order\",\"input\":{\"order_id\":\"A-200\"}}"),
+                    claudeResponse("end_turn", "{\"type\":\"text\",\"text\":\"A-100만 취소했습니다.\"}")), requests);
+            try {
+                AnthropicClient client = AnthropicOkHttpClient.builder()
+                        .apiKey("test").baseUrl("http://127.0.0.1:" + server.getAddress().getPort()).build();
+                List<String> seen = new ArrayList<>();
+                AgentResult result = ClaudeOrderAgent.runAgent(client, "둘 다 취소",
+                        (name, toolArgs, output) -> seen.add(name + ":" + output.isError()));
+
+                check(result.ok(), "중단됨: " + result.reason());
+                eq(result.text(), "A-100만 취소했습니다.");
+                eq(seen, List.of("cancel_order:false", "cancel_order:true"));
+                JsonNode first = Json.MAPPER.readTree(requests.get(0));
+                eq(first.get("tools").size(), 2);
+                check(first.get("tools").get(0).get("strict").asBoolean(), "strict");
+                eq(first.get("tools").get(0).get("input_schema").get("additionalProperties").asBoolean(), false);
+                JsonNode messages = Json.MAPPER.readTree(requests.get(1)).get("messages");
+                JsonNode results = messages.get(messages.size() - 1);
+                eq(results.get("role").asString(), "user");
+                eq(results.get("content").size(), 2); // 결과 두 개가 user 메시지 하나에 담긴다
+                eq(results.get("content").get(0).get("tool_use_id").asString(), "t1");
+                check(!results.get("content").get(0).path("is_error").asBoolean(), "t1은 성공");
+                check(results.get("content").get(1).get("is_error").asBoolean(), "t2는 거절");
+                eq(messages.get(messages.size() - 2).get("content").get(0).get("type").asString(), "tool_use"); // 응답이 통째로 기록에 남는다
+            } finally {
+                server.stop(0);
+            }
+        });
+        test("Claude 루프는 거절과 호출 상한을 status로 돌려준다", () -> {
+            List<String> requests = Collections.synchronizedList(new ArrayList<>());
+            HttpServer refusing = fakeApi(List.of(claudeResponse("refusal", "")), requests);
+            HttpServer looping = fakeApi(List.of(claudeResponse("tool_use",
+                    "{\"type\":\"tool_use\",\"id\":\"t\",\"name\":\"get_order\",\"input\":{\"order_id\":\"A-100\"}}")), requests);
+            try {
+                AgentResult refused = ClaudeOrderAgent.runAgent(AnthropicOkHttpClient.builder().apiKey("test")
+                        .baseUrl("http://127.0.0.1:" + refusing.getAddress().getPort()).build(), "x", (n, a, o) -> {});
+                check(!refused.ok() && refused.reason().contains("refusal"), String.valueOf(refused));
+                requests.clear();
+                AgentResult capped = ClaudeOrderAgent.runAgent(AnthropicOkHttpClient.builder().apiKey("test")
+                        .baseUrl("http://127.0.0.1:" + looping.getAddress().getPort()).build(), "x", (n, a, o) -> {});
+                check(!capped.ok(), "상한에서 멈춰야 한다");
+                eq(requests.size(), OrderTools.MAX_MODEL_CALLS);
+            } finally {
+                refusing.stop(0);
+                looping.stop(0);
+            }
+        });
+        test("OpenAI 호환 루프는 Tool을 실행하고 호출마다 tool 메시지를 돌려준다", () -> {
+            OrderTools.resetOrders();
+            List<String> requests = Collections.synchronizedList(new ArrayList<>());
+            HttpServer server = fakeApi(List.of(
+                    openAiResponse("tool_calls", "{\"role\":\"assistant\",\"content\":null,\"tool_calls\":["
+                            + "{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"cancel_order\",\"arguments\":\"{\\\"order_id\\\":\\\"A-100\\\"}\"}},"
+                            + "{\"id\":\"c2\",\"type\":\"function\",\"function\":{\"name\":\"get_order\",\"arguments\":\"{bad json\"}}]}"),
+                    openAiResponse("stop", "{\"role\":\"assistant\",\"content\":\"처리했습니다.\"}")), requests);
+            try {
+                OpenAIClient client = OpenAIOkHttpClient.builder()
+                        .apiKey("test").baseUrl("http://127.0.0.1:" + server.getAddress().getPort() + "/v1").build();
+                AgentResult result = OpenAiCompatOrderAgent.runAgent(client, "m", "취소", (n, a, o) -> {});
+
+                check(result.ok(), "중단됨: " + result.reason());
+                eq(result.text(), "처리했습니다.");
+                check(OrderTools.run("get_order", Map.of("order_id", "A-100")).text().contains("취소"), "A-100이 취소되어야 한다");
+                JsonNode first = Json.MAPPER.readTree(requests.get(0));
+                eq(first.get("messages").get(0).get("role").asString(), "system");
+                eq(first.get("tools").get(0).get("function").get("parameters").get("required").get(0).asString(), "order_id");
+                JsonNode messages = Json.MAPPER.readTree(requests.get(1)).get("messages");
+                eq(messages.get(2).get("tool_calls").size(), 2); // assistant 메시지에 tool_calls가 남는다
+                eq(messages.get(3).get("role").asString(), "tool");
+                eq(messages.get(3).get("tool_call_id").asString(), "c1");
+                eq(messages.get(4).get("tool_call_id").asString(), "c2");
+                check(messages.get(4).get("content").asString().startsWith("오류: 인자가 JSON 객체가 아니다"), messages.get(4).toString());
+            } finally {
+                server.stop(0);
+            }
         });
 
         // ── Llm ──
@@ -349,6 +475,55 @@ public class SampleTests {
             eq(MultiAgent.run((system, messages) -> system.equals(MultiAgent.PLAN_SYSTEM)
                     ? reply("나눌 수 없음") : reply("혼자 처리"), "작은 일"), "혼자 처리");
             eq(MultiAgent.plan((s, m) -> reply("[\"1\",\"2\",\"3\",\"4\",\"5\",\"6\"]"), "x").size(), MultiAgent.MAX_SUBTASKS);
+        });
+
+        // ── Skills ──
+        Path bundled = Files.isDirectory(Path.of("..", "skills")) ? Path.of("..", "skills") : Path.of("skills");
+        test("묶어 둔 스킬을 읽고, 목록에는 설명만 넣는다", () -> {
+            List<Skills.Skill> skills = Skills.load(bundled);
+            eq(skills.stream().map(Skills.Skill::name).toList(), List.of("delivery-delay", "order-cancel"));
+            String catalog = Skills.catalog(skills);
+            check(catalog.contains("- order-cancel: ") && catalog.contains("read_skill"), catalog);
+            check(!catalog.contains("영업일 기준 3일"), "목록에 본문이 들어갔다");
+        });
+        test("이름이나 설명이 없는 스킬은 뺀다", () -> {
+            Path dir = Files.createDirectories(tmp.resolve("skills"));
+            Files.createDirectories(dir.resolve("good"));
+            Files.writeString(dir.resolve("good/SKILL.md"), "---\r\nname: good\r\ndescription: 쓸 때: 항상\r\n---\r\n\r\n# 절차\n1. 확인한다");
+            Files.createDirectories(dir.resolve("no-description"));
+            Files.writeString(dir.resolve("no-description/SKILL.md"), "---\nname: no-description\n---\n본문");
+            Files.createDirectories(dir.resolve("no-header"));
+            Files.writeString(dir.resolve("no-header/SKILL.md"), "머리말 없음");
+            List<Skills.Skill> skills = Skills.load(dir);
+            eq(skills.size(), 1);
+            eq(skills.get(0).description(), "쓸 때: 항상"); // 값 안의 콜론은 그대로 둔다
+        });
+        test("read_skill은 본문을 돌려주고 목록에 없는 이름은 거절한다", () -> {
+            List<OrderTools.Tool> tools = List.of(Skills.readSkillTool(Skills.load(tmp.resolve("skills"))));
+            eq(OrderTools.run("read_skill", Map.of("name", "good"), tools), new OrderTools.ToolOutput("# 절차\n1. 확인한다", false));
+            for (String name : new String[] {"missing", "../good", tmp.resolve("skills/good/SKILL.md").toString()}) {
+                OrderTools.ToolOutput output = OrderTools.run("read_skill", Map.of("name", name), tools);
+                check(output.isError() && output.text().contains("good"), output.text());
+            }
+        });
+
+        // ── MCP: 주문 서버를 실제 하위 프로세스로 띄워 표준 입출력으로 왕복한다 ──
+        test("MCP 서버의 Tool이 에이전트의 Tool이 되고, 호출은 서버 프로세스에서 실행된다", () -> {
+            try (McpTools mcp = new McpTools(McpTools.orderServer())) {
+                List<OrderTools.Tool> tools = mcp.tools();
+                eq(tools.stream().map(OrderTools.Tool::name).toList(), List.of("get_order", "cancel_order"));
+                eq(tools.get(0).description(), "주문 번호로 주문 상태와 금액을 조회한다.");
+                eq(tools.get(0).required(), List.of("order_id"));
+                check(!tools.get(0).strict(), "서버에서 받은 Tool은 strict를 끈다");
+
+                OrderTools.resetOrders();
+                eq(OrderTools.run("cancel_order", Map.of("order_id", "A-100"), tools).isError(), false);
+                check(OrderTools.run("get_order", Map.of("order_id", "A-100"), tools).text().contains("취소"), "서버가 상태를 기억한다");
+                check(OrderTools.run("get_order", Map.of("order_id", "A-100")).text().contains("결제완료"), "이 프로세스의 데이터는 그대로다");
+
+                OrderTools.ToolOutput refused = OrderTools.run("cancel_order", Map.of("order_id", "A-200"), tools);
+                check(refused.isError() && refused.text().contains("상태가 '배송중'인 주문은 취소할 수 없다."), refused.text());
+            }
         });
 
         System.out.println(failed == 0 ? "모두 통과" : failed + "개 실패");
