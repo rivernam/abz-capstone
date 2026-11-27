@@ -4,6 +4,7 @@
 - verify_evidence: 모델이 준 근거("경로:줄")를 코드가 직접 확인한다(ADR 0001).
   1. 경로가 소스 폴더 안의 .java 파일이고 줄 번호가 범위 안이다.
   2. 그 줄에 ErrorKind.X가 있고, 그 줄의 문자열 리터럴(String.format 형식 포함) 하나가 PC의 마지막 오류 메시지 전체와 맞는다.
+     (3차 개선) 그 리터럴의 %s 자리 값이 X가 아닌 다른 ErrorKind의 리터럴로 시작하면 거부한다(넓은 리터럴이 다른 원인을 감쌈).
   3. ErrorKind.java에서 X의 패턴표 대응(message_pattern)을 읽고, 그 값이 패턴표에 있다.
   셋 다 통과해야 그 패턴의 행을 돌려준다. 모델이 패턴 이름을 주장하는 것만으로는 통과하지 않는다.
 """
@@ -112,6 +113,21 @@ def search(world, query):
     return out
 
 
+def wrapped_other_cause(world, kind, literal, groups, index=None):
+    """넓은 리터럴(예: "failed to send heartbeat: %s")의 %s 자리 값이 다른 ErrorKind의 오류 리터럴로 시작하면 그 리터럴 정보.
+
+    예: "failed to send heartbeat: license expired on 2026-11-20"의 %s 값 "license expired on 2026-11-20"은
+    ErrorKind.LICENSE_EXPIRED(패턴표 대응 없음)의 "license expired on %s"와 맞는다. 같은 ErrorKind의 리터럴은 문제 삼지 않는다."""
+    holes = re.findall(r"%[sd]", literal)
+    for hole, value in zip(holes, groups):
+        if hole != "%s":
+            continue
+        for x in (index if index is not None else literal_index(world)):
+            if x["kind"] != kind and re.match(literal_regex(x["literal"]), value):
+                return {"value": value, **x}
+    return None
+
+
 def verify_evidence(world, location, message, patterns):
     """{ok, reason, pattern(패턴표 행), error_kind, literal, groups, location}. ok가 False면 reason에 이유."""
     fail = lambda why: {"ok": False, "reason": why, "location": location}
@@ -144,6 +160,12 @@ def verify_evidence(world, location, message, patterns):
             break
     if matched is None:
         return fail("그 줄의 메시지 리터럴이 PC의 마지막 오류 메시지와 맞지 않는다.")
+    other = wrapped_other_cause(world, kind, matched[0], matched[1])
+    if other:
+        what = "패턴표 대응이 없는 새로운 원인" if other["pattern"] is None else f"패턴 {other['pattern']!r}"
+        return fail(f"리터럴 {matched[0]!r}의 %s 자리 값 {other['value']!r}이 다른 오류 종류 ErrorKind.{other['kind']}"
+                    f"({what})의 리터럴 {other['literal']!r}({other['location']})과 맞는다. 넓은 리터럴이 다른 원인을 감싼 "
+                    f"메시지라 ErrorKind.{kind}의 근거로 받지 않는다.")
     km = kind_map(world).get(kind)
     if km is None:
         return fail(f"ErrorKind.{kind}의 정의를 ErrorKind.java에서 찾지 못했다.")

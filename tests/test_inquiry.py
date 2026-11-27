@@ -173,9 +173,10 @@ def _ideal_evidence(world, hidden, pcs):
 
 def test_source_evidence_reaches_ideal_answers(base, world):
     """개선 단계 문의(#21~27): 소스 근거를 주면 표기 변형은 조치함, 신규 원인은 조건 미충족(정답)과 같아야 한다.
-    #27(프록시를 거치는 PC의 표현만 다른 접속 오류)은 2차 개선부터 맞는다."""
+    #27(프록시를 거치는 PC의 표현만 다른 접속 오류)은 2차 개선, #28(넓은 리터럴에 감싸인 새로운 원인)은 3차 개선부터 맞는다.
+    #29(키가 메시지에 없는 설정 오류)는 근거가 확인돼도 고칠 키를 정할 수 없어 조건 미충족이다."""
     hidden = base["hidden"]["pcs"]
-    for p in base["posts"][20:27]:
+    for p in base["posts"][20:29]:
         pid = p["post_id"]
         board.create_post(world, p["author"], p["title"], p["pc_field"], p["body"], p["created_at"], post_id=pid)
         parsed = parse_pc_field(p["pc_field"], p["body"])
@@ -259,14 +260,37 @@ def test_second_supplement_world_and_answers(base):
     assert [ans[str(n)]["reply_type"] for n in (27, 28, 29)] == ["결과 회신", "방법 회신", "방법 회신"]
 
 
-def test_wrapped_new_cause_evidence_passes_in_v1(base, world):
-    """문제 B(1차 개선 기준): 넓은 리터럴 'failed to send heartbeat: %s'는 %s 자리에 새로운 원인이 들어간 메시지도 맞춘다.
-    #28의 PC에 이 줄을 근거로 주면 heartbeat send failed로 판단되어 재시작 대상이 된다(정답은 조건 미충족)."""
+def test_wrapped_new_cause_evidence_rejected(base, world, monkeypatch):
+    """3차 개선(문제 B): 넓은 리터럴 'failed to send heartbeat: %s'는 %s 자리에 새로운 원인이 들어간 메시지도 맞춘다.
+    1차 개선 코드(%s 자리 값 확인 없음)에서는 #28의 근거가 통과해 재시작 대상이 되고(정답은 조건 미충족),
+    3차 개선에서는 %s 자리 값이 ErrorKind.LICENSE_EXPIRED(대응 없음)의 리터럴과 맞아 근거를 거부한다."""
+    from abzlib import source
     b = base["hidden"]["scenarios"]["op_new_cause_wrapped"][0]
     pid = add(world, b)
     loc = next(h["location"] for h in T.find_error_in_source(world, "failed to send heartbeat")["hits"] if "error_kind" in h)
-    plan = T.diagnose_targets(world, pid, error_evidence=[{"pc_id": b, "location": loc}])["plans"][0]
-    assert plan["source_evidence"]["ok"] and plan["eligible"]
+    ev = [{"pc_id": b, "location": loc}]
+    with monkeypatch.context() as m:                     # 1차 개선 코드 재현: %s 자리 값을 보지 않는다
+        m.setattr(source, "wrapped_other_cause", lambda *a, **k: None)
+        plan = T.diagnose_targets(world, pid, error_evidence=ev)["plans"][0]
+        assert plan["source_evidence"]["ok"] and plan["eligible"]
+    plan = T.diagnose_targets(world, pid, error_evidence=ev)["plans"][0]
+    se = plan["source_evidence"]
+    assert not se["ok"] and not plan["eligible"] and plan["category"] == inquiry.NOT_MET
+    assert "LICENSE_EXPIRED" in se["reason"] and "새로운 원인" in se["reason"] and "license expired on" in se["reason"]
+    r = T.restart_client_service(world, pid, error_evidence=ev)
+    assert "skipped" in r["results"][0] and not history.rows(world, pid)
+
+
+def test_wrapped_check_keeps_same_kind_values(base, world):
+    """3차 개선의 회귀 확인: 같은 ErrorKind의 값('read timed out')이 든 넓은 리터럴 메시지와 표현만 다른 메시지는 그대로 통과한다."""
+    from abzlib import source
+    from abzlib.patterns import load_patterns
+    pats = load_patterns(world.pattern_table)
+    hb = next(h["location"] for h in T.find_error_in_source(world, "failed to send heartbeat")["hits"] if "error_kind" in h)
+    assert source.verify_evidence(world, hb, "failed to send heartbeat: read timed out", pats)["ok"]
+    assert not source.verify_evidence(world, hb, "failed to send heartbeat: connection refused: 10.10.0.5:8443", pats)["ok"]
+    cfg = next(h["location"] for h in T.find_error_in_source(world, "failed to parse config")["hits"] if "error_kind" in h)
+    assert source.verify_evidence(world, cfg, "failed to parse config: retry_count=abc", pats)["ok"]
 
 
 def test_proxy_variant_gets_proxy_judgement(base, world):
