@@ -170,6 +170,7 @@ abz-capstone/
 | `generator/` | `make_world.py`(고정 시드로 기준정보, 로그, PC 파일, 정답표), `make_source.py`(가상 Java 소스), `make_inquiries.py`(문의 시험 세트와 정답) |
 | `demo/` | `web.py`와 `static/index.html`(웹 시연 화면), `run_demo.py`(터미널 시연) |
 | `docs/구현명세.md` | 구현 기준 전체 |
+| `examples/agent/` | 일반적인 에이전트 구조 설명과 샘플 코드(Python, Java / Claude API, OpenAI 호환 API). 이 프로젝트 코드와는 별개다 |
 | `docs/에이전트_구조_해설.md` | 이 구조가 일반적인 에이전트 설계와 같은 점, 다른 점 |
 | `docs/adr/` | 결정 기록 4개: 안전 검사 위치, 승인 없는 자동 조치, 일반 아이템 2개, 프록시 값 결정 |
 | `docs/개선기록_*.md`, `docs/개선과정기록지_초안.md` | 개선 과정 |
