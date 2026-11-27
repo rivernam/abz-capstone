@@ -8,10 +8,15 @@
 실행: python memory.py   (API 키 필요)
 """
 import json
+import logging
+import re
 from pathlib import Path
 
 from llm import default_complete, parse_json_list
 
+logger = logging.getLogger("agent.memory")
+
+KEY_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,64}")  # 세션 ID, 사용자 ID에 허용하는 글자
 MAX_HISTORY = 20  # 모델에 보내는 최근 메시지 수. 기록이 길어지면 비용과 지연이 늘어난다
 
 BASE_SYSTEM = "너는 친절한 상담 도우미다. 한국어로 짧게 답한다."
@@ -29,13 +34,21 @@ class JsonStore:
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
 
+    def _path(self, key: str) -> Path:
+        # 키는 외부에서 오는 값이다. 그대로 경로에 쓰면 "../"로 폴더 밖 파일을 건드릴 수 있다
+        if not KEY_PATTERN.fullmatch(key):
+            raise ValueError(f"키에 쓸 수 없는 글자가 있다: {key!r}")
+        return self.directory / f"{key}.json"
+
     def load(self, key: str) -> list:
-        path = self.directory / f"{key}.json"
+        path = self._path(key)
         return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
 
     def save(self, key: str, items: list) -> None:
-        path = self.directory / f"{key}.json"
-        path.write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
+        path = self._path(key)
+        temporary = path.with_suffix(".tmp")  # 임시 파일에 쓰고 바꿔치기한다. 쓰다 멈춰도 원본이 깨지지 않는다
+        temporary.write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
+        temporary.replace(path)
 
 
 def recent(history: list[dict]) -> list[dict]:
@@ -66,9 +79,12 @@ def chat(complete, sessions: JsonStore, memories: JsonStore, session_id: str, us
     history.append({"role": "assistant", "content": reply.text})
     sessions.save(session_id, history)         # 4) 기록을 저장한다 (전체를 저장하고, 보낼 때만 줄인다)
 
-    new_facts = extract_facts(complete, text, facts)  # 5) 기억할 사실이 있으면 메모리에 더한다
-    if new_facts:
-        memories.save(user_id, facts + new_facts)
+    try:  # 5) 기억할 사실이 있으면 메모리에 더한다. 실패해도 이미 만든 답은 돌려준다
+        new_facts = extract_facts(complete, text, facts)
+        if new_facts:
+            memories.save(user_id, facts + new_facts)
+    except Exception:
+        logger.warning("장기 메모리 추출에 실패했다. 답은 그대로 돌려준다.", exc_info=True)
     return reply.text
 
 

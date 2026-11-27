@@ -1,11 +1,13 @@
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +18,7 @@ import java.util.function.Function;
  * 추적, 모니터링, 비용 집계.
  *
  * <ul>
- *   <li>추적: 요청 하나(trace)가 거친 단계(span)를 시간, 토큰, 오류와 함께 남긴다.
+ *   <li>추적: 요청 하나(trace)가 거친 단계(span)를 시작 시각, 걸린 시간, 토큰, 오류와 함께 남긴다.
  *   <li>비용: 모델 호출마다 토큰 수에 단가를 곱해 span에 적고, 나중에 trace별로 합친다.
  * </ul>
  *
@@ -28,14 +30,20 @@ public class Tracing {
     static final Map<String, double[]> PRICES = Map.of(
             "claude-opus-5-5", new double[] {4.00, 20.00});
 
-    static final ObjectMapper MAPPER = new ObjectMapper();
+    /** 지금 실행 중인 span의 ID. 안쪽 span이 이것을 부모로 적는다 (스레드마다 따로 유지된다). */
+    private static final ThreadLocal<String> CURRENT_SPAN_ID = new ThreadLocal<>();
 
     static double costUsd(String model, long inputTokens, long outputTokens) {
-        // 서버가 돌려주는 모델 이름에 날짜 등이 붙을 수 있어 앞부분으로 찾는다
-        double[] price = PRICES.entrySet().stream()
-                .filter(entry -> model.startsWith(entry.getKey()))
-                .map(Map.Entry::getValue)
-                .findFirst()
+        return costUsd(PRICES, model, inputTokens, outputTokens);
+    }
+
+    static double costUsd(Map<String, double[]> prices, String model, long inputTokens, long outputTokens) {
+        // 서버가 돌려주는 모델 이름에 날짜 등이 붙을 수 있어 앞부분으로 찾는다.
+        // 여러 개가 맞으면 가장 긴 이름을 쓴다 ("gpt-4o"와 "gpt-4o-mini"가 함께 있을 때 mini를 고른다)
+        double[] price = prices.keySet().stream()
+                .filter(model::startsWith)
+                .max(Comparator.comparingInt(String::length))
+                .map(prices::get)
                 .orElse(new double[] {0.0, 0.0});
         return (inputTokens * price[0] + outputTokens * price[1]) / 1_000_000;
     }
@@ -49,9 +57,15 @@ public class Tracing {
 
         /** body 하나가 span 하나다. body 안에서 record에 값을 더 적을 수 있다. */
         <T> T span(String traceId, String name, Function<Map<String, Object>, T> body) {
+            String parentId = CURRENT_SPAN_ID.get();
+            String spanId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
             Map<String, Object> record = new LinkedHashMap<>();
             record.put("trace_id", traceId);
+            record.put("span_id", spanId);
+            record.put("parent_id", parentId);
             record.put("name", name);
+            record.put("started_at", Instant.now().toString());
+            CURRENT_SPAN_ID.set(spanId);
             long started = System.nanoTime();
             try {
                 return body.apply(record);
@@ -59,6 +73,7 @@ public class Tracing {
                 record.put("error", e.getClass().getSimpleName() + ": " + e.getMessage());
                 throw e;
             } finally {
+                CURRENT_SPAN_ID.set(parentId);
                 record.put("duration_ms", (System.nanoTime() - started) / 1_000_000);
                 write(record);
             }
@@ -76,12 +91,12 @@ public class Tracing {
             });
         }
 
-        private synchronized void write(Map<String, Object> record) {
+        private synchronized void write(Map<String, Object> record) { // 여러 스레드가 같은 파일에 쓴다
             try {
                 if (path.getParent() != null) {
                     Files.createDirectories(path.getParent());
                 }
-                Files.writeString(path, MAPPER.writeValueAsString(record) + "\n", StandardCharsets.UTF_8,
+                Files.writeString(path, Json.MAPPER.writeValueAsString(record) + "\n", StandardCharsets.UTF_8,
                         StandardOpenOption.CREATE, StandardOpenOption.APPEND);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -91,11 +106,23 @@ public class Tracing {
 
     record Total(int llmCalls, long inputTokens, long outputTokens, double costUsd, int errors) {}
 
+    /** 저장된 span을 모두 읽는다. */
+    static List<Map<String, Object>> readSpans(String path) {
+        try (BufferedReader reader = Files.newBufferedReader(Path.of(path), StandardCharsets.UTF_8)) {
+            List<Map<String, Object>> spans = new java.util.ArrayList<>();
+            for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+                spans.add(Json.MAPPER.readValue(line, new TypeReference<>() {}));
+            }
+            return spans;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     /** trace별 합계: 모델 호출 수, 토큰, 비용, 오류 수. */
-    static Map<String, Total> summarize(String path) throws IOException {
+    static Map<String, Total> summarize(String path) {
         Map<String, Total> totals = new LinkedHashMap<>();
-        for (String line : Files.readAllLines(Path.of(path), StandardCharsets.UTF_8)) {
-            Map<String, Object> span = MAPPER.readValue(line, new TypeReference<>() {});
+        for (Map<String, Object> span : readSpans(path)) {
             boolean isCall = "llm.call".equals(span.get("name"));
             Total add = new Total(
                     isCall ? 1 : 0,
@@ -114,7 +141,7 @@ public class Tracing {
         return span.get(key) instanceof Number number ? number : 0;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         Tracer tracer = new Tracer("data/traces.jsonl");
         String traceId = UUID.randomUUID().toString(); // 요청 하나에 ID 하나. 로그와 응답에도 같은 ID를 남기면 찾기 쉽다
         Llm llm = tracer.traced(Llm.fromEnv(), traceId);

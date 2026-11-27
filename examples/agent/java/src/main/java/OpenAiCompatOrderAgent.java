@@ -1,6 +1,5 @@
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.JsonValue;
@@ -25,18 +24,16 @@ import java.util.Map;
  */
 public class OpenAiCompatOrderAgent {
 
-    static final ObjectMapper MAPPER = new ObjectMapper();
-
     /** OpenAI 호환 Tool 정의: function으로 감싸고 스키마를 parameters에 넣는다. */
-    static ChatCompletionFunctionTool tool(OrderTools.ToolSpec spec) {
+    static ChatCompletionFunctionTool definition(OrderTools.Tool tool) {
         return ChatCompletionFunctionTool.builder()
                 .function(FunctionDefinition.builder()
-                        .name(spec.name())
-                        .description(spec.description())
+                        .name(tool.name())
+                        .description(tool.description())
                         .parameters(FunctionParameters.builder()
                                 .putAdditionalProperty("type", JsonValue.from("object"))
-                                .putAdditionalProperty("properties", JsonValue.from(OrderTools.PROPERTIES))
-                                .putAdditionalProperty("required", JsonValue.from(OrderTools.REQUIRED))
+                                .putAdditionalProperty("properties", JsonValue.from(tool.properties()))
+                                .putAdditionalProperty("required", JsonValue.from(tool.required()))
                                 .putAdditionalProperty("additionalProperties", JsonValue.from(false))
                                 .build())
                         .build())
@@ -44,22 +41,23 @@ public class OpenAiCompatOrderAgent {
     }
 
     static OrderTools.ToolOutput runTool(ChatCompletionMessageFunctionToolCall call) {
+        Map<String, Object> args;
         try {
             // 인자가 JSON 문자열로 온다
-            Map<String, Object> args = MAPPER.readValue(call.function().arguments(), new TypeReference<>() {});
-            return OrderTools.run(call.function().name(), args == null ? Map.of() : args);
+            args = Json.MAPPER.readValue(call.function().arguments(), new TypeReference<>() {});
         } catch (JsonProcessingException e) {
-            return new OrderTools.ToolOutput("오류: 인자가 JSON이 아니다: " + e.getOriginalMessage(), true);
+            return new OrderTools.ToolOutput("오류: 인자가 JSON 객체가 아니다: " + e.getOriginalMessage(), true);
         }
+        return OrderTools.run(call.function().name(), args);
     }
 
-    static String runAgent(OpenAIClient client, String model, String inquiry) {
+    static AgentResult runAgent(OpenAIClient client, String model, String inquiry, OrderTools.ToolListener listener) {
         // 빌더가 대화 기록을 들고 있다. 시스템 프롬프트는 첫 메시지로 넣는다.
         ChatCompletionCreateParams.Builder params = ChatCompletionCreateParams.builder()
                 .model(model)
                 .addSystemMessage(OrderTools.SYSTEM)
                 .addUserMessage("<inquiry>\n" + inquiry + "\n</inquiry>");
-        OrderTools.SPECS.forEach(spec -> params.addTool(tool(spec)));
+        OrderTools.TOOLS.forEach(tool -> params.addTool(definition(tool)));
 
         for (int n = 0; n < OrderTools.MAX_MODEL_CALLS; n++) {
             ChatCompletion completion = client.chat().completions().create(params.build());
@@ -67,7 +65,7 @@ public class OpenAiCompatOrderAgent {
             ChatCompletion.Choice.FinishReason finish = choice.finishReason();
             if (ChatCompletion.Choice.FinishReason.LENGTH.equals(finish)
                     || ChatCompletion.Choice.FinishReason.CONTENT_FILTER.equals(finish)) {
-                return "[중단] finish_reason=" + finish;
+                return AgentResult.stopped("finish_reason=" + finish);
             }
 
             // 모델의 응답을 통째로 기록에 붙인다 (tool_calls 포함)
@@ -76,15 +74,14 @@ public class OpenAiCompatOrderAgent {
 
             List<ChatCompletionMessageToolCall> toolCalls = message.toolCalls().orElse(List.of());
             if (toolCalls.isEmpty()) { // Tool을 더 부르지 않으면 끝
-                return message.content().orElse("");
+                return AgentResult.done(message.content().orElse(""));
             }
 
             // Tool 결과는 호출 하나마다 role이 tool인 메시지 하나로 돌려준다
             for (ChatCompletionMessageToolCall toolCall : toolCalls) {
                 toolCall.function().ifPresent(call -> {
                     OrderTools.ToolOutput output = runTool(call);
-                    System.out.println("  [tool] " + call.function().name() + "(" + call.function().arguments()
-                            + ") -> " + output.text());
+                    listener.onTool(call.function().name(), call.function().arguments(), output);
                     // 오류 표시 칸이 따로 없으므로 오류 여부는 content의 문장으로 알린다
                     params.addMessage(ChatCompletionToolMessageParam.builder()
                             .toolCallId(call.id())
@@ -93,7 +90,7 @@ public class OpenAiCompatOrderAgent {
                 });
             }
         }
-        return "[중단] 모델 호출 상한에 걸렸다.";
+        return AgentResult.stopped("모델 호출 상한에 걸렸다.");
     }
 
     public static void main(String[] args) {
@@ -102,6 +99,7 @@ public class OpenAiCompatOrderAgent {
             throw new IllegalStateException("OPENAI_MODEL 환경변수에 모델 이름을 넣어야 한다.");
         }
         OpenAIClient client = OpenAIOkHttpClient.fromEnv(); // OPENAI_API_KEY, OPENAI_BASE_URL을 읽는다
-        System.out.println(runAgent(client, model, "A-100이랑 A-200 주문 둘 다 취소해 주세요."));
+        AgentResult result = runAgent(client, model, "A-100이랑 A-200 주문 둘 다 취소해 주세요.", OrderTools.LOG_TOOL_CALL);
+        System.out.println(result.display());
     }
 }

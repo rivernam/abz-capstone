@@ -1,7 +1,18 @@
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.anthropic.models.messages.Message;
+import com.anthropic.models.messages.MessageCreateParams;
+import com.anthropic.models.messages.StopReason;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.chat.completions.ChatCompletion;
+import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import com.openai.models.completions.CompletionUsage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -22,9 +33,9 @@ public interface Llm {
     Reply complete(String system, List<Msg> messages);
 
     static Llm claude(String model) {
-        com.anthropic.client.AnthropicClient client = com.anthropic.client.okhttp.AnthropicOkHttpClient.fromEnv();
+        AnthropicClient client = AnthropicOkHttpClient.fromEnv(); // 클라이언트는 한 번만 만든다
         return (system, messages) -> {
-            var params = com.anthropic.models.messages.MessageCreateParams.builder()
+            MessageCreateParams.Builder params = MessageCreateParams.builder()
                     .model(model)
                     .maxTokens(16000L)
                     .system(system);
@@ -35,8 +46,8 @@ public interface Llm {
                     params.addUserMessage(message.content());
                 }
             }
-            var response = client.messages().create(params.build());
-            if (response.stopReason().filter(com.anthropic.models.messages.StopReason.REFUSAL::equals).isPresent()) {
+            Message response = client.messages().create(params.build());
+            if (response.stopReason().filter(StopReason.REFUSAL::equals).isPresent()) {
                 throw new IllegalStateException("모델이 응답을 거절했다.");
             }
             String text = response.content().stream()
@@ -49,9 +60,9 @@ public interface Llm {
     }
 
     static Llm openAiCompat(String model) {
-        com.openai.client.OpenAIClient client = com.openai.client.okhttp.OpenAIOkHttpClient.fromEnv();
+        OpenAIClient client = OpenAIOkHttpClient.fromEnv();
         return (system, messages) -> {
-            var params = com.openai.models.chat.completions.ChatCompletionCreateParams.builder()
+            ChatCompletionCreateParams.Builder params = ChatCompletionCreateParams.builder()
                     .model(model)
                     .addSystemMessage(system);
             for (Msg message : messages) {
@@ -61,13 +72,13 @@ public interface Llm {
                     params.addUserMessage(message.content());
                 }
             }
-            var completion = client.chat().completions().create(params.build());
-            var usage = completion.usage(); // 호환 서버에 따라 없을 수 있다
+            ChatCompletion completion = client.chat().completions().create(params.build());
+            Optional<CompletionUsage> usage = completion.usage(); // 호환 서버에 따라 없을 수 있다
             return new Reply(
                     completion.choices().get(0).message().content().orElse(""),
                     completion.model(),
-                    usage.map(u -> u.promptTokens()).orElse(0L),
-                    usage.map(u -> u.completionTokens()).orElse(0L));
+                    usage.map(CompletionUsage::promptTokens).orElse(0L),
+                    usage.map(CompletionUsage::completionTokens).orElse(0L));
         };
     }
 
@@ -91,7 +102,7 @@ public interface Llm {
             return items;
         }
         try {
-            JsonNode node = new ObjectMapper().readTree(text.substring(start, end + 1));
+            JsonNode node = Json.MAPPER.readTree(text.substring(start, end + 1));
             if (node.isArray()) {
                 for (JsonNode item : node) {
                     if (item.isTextual()) {
@@ -99,7 +110,7 @@ public interface Llm {
                     }
                 }
             }
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             // 읽지 못하면 빈 목록
         }
         return items;

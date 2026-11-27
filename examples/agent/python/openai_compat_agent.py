@@ -8,21 +8,24 @@ OpenAI, vLLM, Ollama, LiteLLM처럼 /v1/chat/completions를 제공하는 서버�
   OPENAI_MODEL     서버가 제공하는 모델 이름. Tool 호출을 지원하는 모델이어야 한다
 """
 import json
+import logging
 import os
 
 from openai import OpenAI
 
-from order_tools import MAX_MODEL_CALLS, SYSTEM, TOOL_SPECS, run_tool
+from agent_result import AgentResult, done, stopped
+from order_tools import MAX_MODEL_CALLS, SYSTEM, TOOLS, log_tool_call, run_tool
 
 # OpenAI 호환 Tool 정의: {"type": "function", "function": {...}}로 감싸고 스키마를 parameters에 넣는다
-TOOLS = [
+TOOL_DEFINITIONS = [
     {"type": "function",
-     "function": {"name": s["name"], "description": s["description"], "parameters": s["parameters"]}}
-    for s in TOOL_SPECS
+     "function": {"name": tool.name, "description": tool.description, "parameters": tool.parameters}}
+    for tool in TOOLS
 ]
 
 
-def run_agent(inquiry: str, client=None, model=None) -> str:
+def run_agent(inquiry: str, client=None, model=None, on_tool=log_tool_call) -> AgentResult:
+    """on_tool(name, args, output, is_error)은 Tool을 실행할 때마다 불린다."""
     client = client or OpenAI()  # OPENAI_API_KEY, OPENAI_BASE_URL 환경변수를 읽는다
     model = model or os.environ["OPENAI_MODEL"]
     # 시스템 프롬프트는 messages의 첫 메시지로 넣는다
@@ -32,10 +35,10 @@ def run_agent(inquiry: str, client=None, model=None) -> str:
     ]
 
     for _ in range(MAX_MODEL_CALLS):
-        completion = client.chat.completions.create(model=model, messages=messages, tools=TOOLS)
+        completion = client.chat.completions.create(model=model, messages=messages, tools=TOOL_DEFINITIONS)
         choice = completion.choices[0]
         if choice.finish_reason in ("length", "content_filter"):
-            return f"[중단] finish_reason={choice.finish_reason}"
+            return stopped(f"finish_reason={choice.finish_reason}")
         message = choice.message
         tool_calls = message.tool_calls or []
 
@@ -50,21 +53,23 @@ def run_agent(inquiry: str, client=None, model=None) -> str:
         messages.append(assistant)
 
         if not tool_calls:  # Tool을 더 부르지 않으면 끝
-            return message.content or ""
+            return done(message.content or "")
 
         # Tool 결과는 호출 하나마다 role이 tool인 메시지 하나로 돌려준다
         for call in tool_calls:
             try:
                 args = json.loads(call.function.arguments)  # 인자가 JSON 문자열로 온다
-                output, _ = run_tool(call.function.name, args)
+                output, is_error = run_tool(call.function.name, args)
             except json.JSONDecodeError as e:
-                output = f"오류: 인자가 JSON이 아니다: {e}"
-            print(f"  [tool] {call.function.name}({call.function.arguments}) -> {output}")
+                args, output, is_error = call.function.arguments, f"오류: 인자가 JSON이 아니다: {e}", True
+            on_tool(call.function.name, args, output, is_error)
             # 오류 표시 칸이 따로 없으므로 오류 여부는 content의 문장으로 알린다
             messages.append({"role": "tool", "tool_call_id": call.id, "content": output})
 
-    return "[중단] 모델 호출 상한에 걸렸다."
+    return stopped("모델 호출 상한에 걸렸다.")
 
 
 if __name__ == "__main__":
-    print(run_agent("A-100이랑 A-200 주문 둘 다 취소해 주세요."))
+    logging.basicConfig(level=logging.INFO, format="  [%(name)s] %(message)s")
+    result = run_agent("A-100이랑 A-200 주문 둘 다 취소해 주세요.")
+    print(result.text if result.ok else f"[중단] {result.reason}")

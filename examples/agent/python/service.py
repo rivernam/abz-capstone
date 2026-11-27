@@ -4,17 +4,20 @@
 
 - 인증: 요청을 보낸 사람이 누구인지 확인한다.
 - 권한: 그 사람이 쓸 수 있는 Tool만 실행한다. 프롬프트가 아니라 Tool을 실행하는 코드에서 막는다.
-- 동시 실행: 작업자 수로 동시에 도는 에이전트 수를 제한하고, 같은 세션의 요청은 한 번에 하나만 처리한다.
+- 동시 실행: 작업자 수로 동시에 도는 에이전트 수를 제한하고, 같은 세션의 요청은 들어온 순서대로 하나씩 처리한다.
 - 재시도 큐: 일시적 오류는 간격을 늘려 가며 다시 시도하고, 끝까지 실패하면 따로 모아 둔다.
 - 멱등 키: 같은 요청이 두 번 들어와도 한 번만 처리한다.
 
 실행: python service.py   (LLM 없이 돈다. 가짜 에이전트 함수로 동작만 보여 준다)
 """
-import itertools
+import logging
 import queue
 import threading
 import time
-from dataclasses import dataclass
+from collections import deque
+from dataclasses import dataclass, field
+
+logger = logging.getLogger("agent.service")
 
 
 @dataclass(frozen=True)
@@ -58,17 +61,20 @@ class Job:
     status: str = "queued"  # queued -> done | retrying -> ... | failed | dead
     result: str | None = None
     error: str | None = None
+    finished_at: float | None = None
+    finished: threading.Event = field(default_factory=threading.Event)  # 끝나면 켜진다
 
 
 class AgentService:
-    def __init__(self, run_agent, workers: int = 4, max_attempts: int = 3, base_delay: float = 0.2):
+    def __init__(self, run_agent, workers: int = 4, max_attempts: int = 3, base_delay: float = 0.2,
+                 idempotency_ttl: float = 3600.0):
         self.run_agent = run_agent  # (user, session_id, text) -> str
         self.max_attempts = max_attempts
         self.base_delay = base_delay
-        self.queue: queue.PriorityQueue = queue.PriorityQueue()  # (실행 가능 시각, 순번, job)
-        self.sequence = itertools.count()
+        self.idempotency_ttl = idempotency_ttl  # 끝난 작업을 멱등 키로 기억해 두는 시간(초)
+        self.ready: queue.Queue = queue.Queue()  # 지금 실행할 수 있는 작업
         self.jobs: dict[str, Job] = {}  # 멱등 키 -> job
-        self.session_locks: dict[str, threading.Lock] = {}
+        self.waiting: dict[str, deque[Job]] = {}  # 처리 중인 세션 -> 그 세션에서 차례를 기다리는 작업
         self.dead: list[Job] = []  # 끝까지 실패한 작업. 사람이 확인한다
         self.lock = threading.Lock()
         for _ in range(workers):  # 작업자 수가 동시에 도는 에이전트 수의 상한이다
@@ -77,39 +83,57 @@ class AgentService:
     def submit(self, api_key: str, session_id: str, text: str, idempotency_key: str) -> Job:
         user = authenticate(api_key)  # 인증에 실패하면 큐에 넣지 않는다
         with self.lock:
+            self._forget_old_jobs()
             if idempotency_key in self.jobs:  # 같은 요청이 다시 왔다: 새로 만들지 않는다
                 return self.jobs[idempotency_key]
             job = self.jobs[idempotency_key] = Job(idempotency_key, user, session_id, text)
-            self.session_locks.setdefault(session_id, threading.Lock())
-        self.queue.put((time.monotonic(), next(self.sequence), job))
+            if session_id in self.waiting:  # 이 세션은 처리 중이다: 작업자를 붙잡지 않고 줄만 선다
+                self.waiting[session_id].append(job)
+            else:
+                self.waiting[session_id] = deque()
+                self.ready.put(job)
         return job
 
-    def wait(self) -> None:
-        self.queue.join()
+    def _forget_old_jobs(self) -> None:
+        """끝난 지 오래된 작업의 멱등 키를 지운다. 지우지 않으면 기록이 끝없이 쌓인다."""
+        cutoff = time.monotonic() - self.idempotency_ttl
+        for key in [key for key, job in self.jobs.items() if job.finished_at is not None and job.finished_at < cutoff]:
+            del self.jobs[key]
 
     def _work(self) -> None:
         while True:
-            not_before, _, job = self.queue.get()
-            time.sleep(max(0.0, not_before - time.monotonic()))  # 재시도 대기
-            with self.session_locks[job.session_id]:  # 같은 세션은 한 번에 하나만
-                self._attempt(job)
-            self.queue.task_done()
+            self._attempt(self.ready.get())
 
     def _attempt(self, job: Job) -> None:
         job.attempts += 1
         try:
             job.result = self.run_agent(job.user, job.session_id, job.text)
-            job.status = "done"
+            self._finish(job, "done")
         except TransientError as e:
             if job.attempts < self.max_attempts:
                 delay = self.base_delay * 2 ** (job.attempts - 1)  # 0.2초, 0.4초, ... 간격을 늘린다
                 job.status = "retrying"
-                self.queue.put((time.monotonic() + delay, next(self.sequence), job))
+                # 기다리는 동안 작업자를 붙잡지 않는다. 타이머가 때가 되면 큐에 다시 넣는다
+                timer = threading.Timer(delay, self.ready.put, args=(job,))
+                timer.daemon = True
+                timer.start()
             else:
-                job.status, job.error = "dead", str(e)
                 self.dead.append(job)
+                self._finish(job, "dead", str(e))
         except Exception as e:  # 권한 없음, 잘못된 입력: 다시 해도 같으므로 재시도하지 않는다
-            job.status, job.error = "failed", f"{type(e).__name__}: {e}"
+            if not isinstance(e, PermissionError):
+                logger.exception("작업 %s 실행 중 예상하지 못한 오류", job.job_id)
+            self._finish(job, "failed", f"{type(e).__name__}: {e}")
+
+    def _finish(self, job: Job, status: str, error: str | None = None) -> None:
+        job.status, job.error, job.finished_at = status, error, time.monotonic()
+        with self.lock:  # 같은 세션에서 기다리던 다음 작업을 내보낸다. 없으면 세션 기록을 지운다
+            waiting = self.waiting[job.session_id]
+            if waiting:
+                self.ready.put(waiting.popleft())
+            else:
+                del self.waiting[job.session_id]
+        job.finished.set()
 
 
 if __name__ == "__main__":
@@ -138,7 +162,9 @@ if __name__ == "__main__":
         service.submit("key-agent", "s-3", "불안정한 조회", "req-3"),  # 두 번 실패하고 세 번째에 성공
         service.submit("key-agent", "s-4", "계속 실패하는 조회", "req-4"),  # 끝까지 실패
     ]
-    service.wait()
+    for job in jobs:
+        if not job.finished.wait(timeout=30):
+            raise TimeoutError(f"{job.job_id}가 30초 안에 끝나지 않았다.")
     print("멱등 키가 같으면 같은 job:", jobs[0] is jobs[1])
     for job in jobs[1:]:
         print(f"{job.job_id}: {job.status}, 시도 {job.attempts}회, {job.result or job.error}")

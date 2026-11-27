@@ -9,6 +9,7 @@ messages는 [{"role": "user" | "assistant", "content": "글"}] 목록이다.
 import json
 import os
 from dataclasses import dataclass
+from functools import lru_cache
 
 
 @dataclass
@@ -19,10 +20,23 @@ class Reply:
     output_tokens: int
 
 
-def claude_complete(system: str, messages: list[dict], model: str = "claude-opus-5-5") -> Reply:
+@lru_cache(maxsize=None)
+def _claude_client():
+    """클라이언트는 한 번만 만든다. 호출마다 새로 만들면 연결을 재사용하지 못한다."""
     import anthropic
 
-    response = anthropic.Anthropic().messages.create(
+    return anthropic.Anthropic()
+
+
+@lru_cache(maxsize=None)
+def _openai_client():
+    from openai import OpenAI
+
+    return OpenAI()
+
+
+def claude_complete(system: str, messages: list[dict], model: str = "claude-opus-5-5") -> Reply:
+    response = _claude_client().messages.create(
         model=model, max_tokens=16000, system=system, messages=messages,
     )
     if response.stop_reason == "refusal":
@@ -32,9 +46,7 @@ def claude_complete(system: str, messages: list[dict], model: str = "claude-opus
 
 
 def openai_complete(system: str, messages: list[dict], model: str | None = None) -> Reply:
-    from openai import OpenAI
-
-    completion = OpenAI().chat.completions.create(
+    completion = _openai_client().chat.completions.create(
         model=model or os.environ["OPENAI_MODEL"],
         messages=[{"role": "system", "content": system}, *messages],
     )

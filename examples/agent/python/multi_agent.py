@@ -9,11 +9,15 @@
 
 실행: python multi_agent.py   (API 키 필요)
 """
+import time
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
+from dataclasses import dataclass
 
 from llm import default_complete, parse_json_list
 
 MAX_SUBTASKS = 4  # 작업자 수 상한: 비용이 작업자 수만큼 늘어난다
+WORKER_TIMEOUT = 120.0  # 작업자 전체를 기다리는 시간(초). 한 작업자가 멈춰도 전체가 멈추지 않는다
 
 PLAN_SYSTEM = (
     "너는 지휘자다. <task>를 서로 독립적으로 조사할 수 있는 하위 작업 2~4개로 나눈다. "
@@ -26,29 +30,49 @@ SYNTHESIS_SYSTEM = (
 )
 
 
+@dataclass(frozen=True)
+class WorkerResult:
+    subtask: str
+    ok: bool
+    text: str  # ok이면 결과, 아니면 실패 사유
+
+
 def plan(complete, task: str) -> list[str]:
     reply = complete(PLAN_SYSTEM, [{"role": "user", "content": f"<task>\n{task}\n</task>"}])
     return parse_json_list(reply.text)[:MAX_SUBTASKS]
 
 
 def work(complete, subtask: str) -> str:
-    """작업자 하나. 새 대화로 시작하고, 실패해도 다른 작업자를 막지 않는다."""
-    try:
-        return complete(WORKER_SYSTEM, [{"role": "user", "content": subtask}]).text
-    except Exception as e:
-        return f"[실패] {type(e).__name__}: {e}"
+    """작업자 하나. 새 대화로 시작한다."""
+    return complete(WORKER_SYSTEM, [{"role": "user", "content": subtask}]).text
 
 
-def run(complete, task: str) -> str:
+def run_workers(complete, subtasks: list[str], timeout: float = WORKER_TIMEOUT) -> list[WorkerResult]:
+    """작업자를 동시에 돌린다. 한 작업자가 실패하거나 늦어도 나머지 결과는 살린다."""
+    pool = ThreadPoolExecutor(max_workers=MAX_SUBTASKS)
+    futures = [pool.submit(work, complete, subtask) for subtask in subtasks]
+    deadline = time.monotonic() + timeout
+    results = []
+    for subtask, future in zip(subtasks, futures):
+        try:
+            results.append(WorkerResult(subtask, True, future.result(timeout=max(0.0, deadline - time.monotonic()))))
+        except FutureTimeout:
+            results.append(WorkerResult(subtask, False, "시간 안에 끝나지 않았다."))
+        except Exception as e:
+            results.append(WorkerResult(subtask, False, f"{type(e).__name__}: {e}"))
+    pool.shutdown(wait=False, cancel_futures=True)  # 늦은 작업자를 기다리지 않는다
+    return results
+
+
+def run(complete, task: str, timeout: float = WORKER_TIMEOUT) -> str:
     subtasks = plan(complete, task)
     if not subtasks:  # 나누지 못하면 혼자 처리한다
         return work(complete, task)
 
-    with ThreadPoolExecutor(max_workers=MAX_SUBTASKS) as pool:  # 작업자는 동시에 돈다
-        results = list(pool.map(lambda subtask: work(complete, subtask), subtasks))
-
-    report = "\n\n".join(f"[하위 작업 {i}] {subtask}\n[결과] {result}"
-                          for i, (subtask, result) in enumerate(zip(subtasks, results), start=1))
+    results = run_workers(complete, subtasks, timeout)
+    report = "\n\n".join(
+        f"[하위 작업 {i}] {result.subtask}\n[{'결과' if result.ok else '실패'}] {result.text}"
+        for i, result in enumerate(results, start=1))
     reply = complete(SYNTHESIS_SYSTEM, [{"role": "user", "content": f"<task>\n{task}\n</task>\n\n{report}"}])
     return reply.text
 
