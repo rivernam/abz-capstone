@@ -1,4 +1,4 @@
-"""아이템 ② 채점(구현명세 §7 ②): 문의 26건(개선 단계 6건 포함).
+"""아이템 ② 채점(구현명세 §7 ②): 문의 29건(개선 단계 9건 포함).
 
 문의마다 저장소의 재료/와 숨은 원인 파일을 임시 폴더에 복사한 새 세계에서 처리한다. 저장소의 재료/는 바뀌지 않는다.
 
@@ -136,7 +136,7 @@ def usage_of(record_path):
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    ap = argparse.ArgumentParser(description="아이템 ② 문의 26건 채점")
+    ap = argparse.ArgumentParser(description="아이템 ② 문의 29건 채점")
     ap.add_argument("--runs", type=int, default=1)
     ap.add_argument("--only", help="문의 번호 쉼표 목록")
     ap.add_argument("--workers", type=int, default=4)

@@ -234,6 +234,33 @@
       "pc_field": "PC-E0156",
       "body": "config file not found가 납니다. 설정 오류니까 기본값으로 돌려 주세요.",
       "created_at": "2026-11-26 09:00:00"
+    },
+    {
+      "post_id": 27,
+      "category": "표현만 다른 오류 메시지: 프록시 PC",
+      "author": "남궁민",
+      "title": "접속 오류로 클라이언트 정지",
+      "pc_field": "PC-D0143",
+      "body": "새벽에 Connection refused: connect 오류가 나고 클라이언트가 멈췄습니다. 같은 라인의 다른 PC는 정상입니다.",
+      "created_at": "2026-11-26 09:02:00"
+    },
+    {
+      "post_id": 28,
+      "category": "새로운 원인: 넓은 리터럴",
+      "author": "김고은",
+      "title": "하트비트 오류로 꺼졌습니다",
+      "pc_field": "PC-C0138",
+      "body": "로그에 failed to send heartbeat 오류가 찍히고 클라이언트가 꺼졌습니다. 하트비트 오류는 재시작하면 풀린다고 들었으니 재시작해 주세요.",
+      "created_at": "2026-11-26 09:04:00"
+    },
+    {
+      "post_id": 29,
+      "category": "표현만 다른 오류 메시지: 키 없음",
+      "author": "류준열",
+      "title": "설정 파일 오류",
+      "pc_field": "PC-E0141",
+      "body": "config file parse error at line 12 오류로 클라이언트가 시작되지 않습니다. 설정 오류니 기본값으로 돌려 주세요.",
+      "created_at": "2026-11-26 09:06:00"
     }
   ]
 }

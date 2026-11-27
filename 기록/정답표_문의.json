@@ -310,6 +310,35 @@
       "reply_type": "방법 회신",
       "acted_pcs": [],
       "body_only_pcs": []
+    },
+    "27": {
+      "category": "표현만 다른 오류 메시지: 프록시 PC",
+      "expected": {
+        "PC-D0143": "조치함"
+      },
+      "reply_type": "결과 회신",
+      "acted_pcs": [
+        "PC-D0143"
+      ],
+      "body_only_pcs": []
+    },
+    "28": {
+      "category": "새로운 원인: 넓은 리터럴",
+      "expected": {
+        "PC-C0138": "조건 미충족"
+      },
+      "reply_type": "방법 회신",
+      "acted_pcs": [],
+      "body_only_pcs": []
+    },
+    "29": {
+      "category": "표현만 다른 오류 메시지: 키 없음",
+      "expected": {
+        "PC-E0141": "조건 미충족"
+      },
+      "reply_type": "방법 회신",
+      "acted_pcs": [],
+      "body_only_pcs": []
     }
   }
 }
