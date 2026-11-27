@@ -459,4 +459,5 @@ reply = complete(SYNTHESIS_SYSTEM, [...])             # 지휘자: 결과를 모
 - **Python**: 시험 42개가 통과한다. 두 에이전트 루프는 가짜 클라이언트로, 운영 요소 네 가지는 가짜 모델 함수로 확인했다. MCP는 주문 서버를 실제 하위 프로세스로 띄워 왕복했다(`mcp` 2.3.0). `service.py`는 그대로 실행했다.
 - **Java**: Maven 3.9.16으로 빌드했고 `SampleTests` 26개가 통과한다. 두 에이전트 루프는 시험 안에서 가짜 API 서버를 띄워, SDK가 실제로 HTTP 요청을 보내고 응답을 읽는 경로로 끝까지 실행했다. MCP는 `McpOrderServer`를 실제 하위 프로세스로 띄워 왕복했다(MCP Java SDK 2.2.0). `AgentService`는 `mvn` 명령 그대로 실행했다.
 - **Java의 JSON 라이브러리**: 샘플 코드는 Jackson 3(3.3.0)을 쓴다. Claude·OpenAI SDK는 내부에서 Jackson 2를 쓰므로 Jackson 2도 클래스 경로에 함께 있다. 두 계열이 같이 쓰는 `jackson-annotations`의 버전은 `pom.xml`의 `jackson-bom`이 맞춘다.
-- **확인하지 않은 것**: 실제 LLM API 호출. API 키가 필요한 `main`들은 실행해 보지 않았다.
+- **실제 API 호출**: Skills만 Claude API(`claude-opus-5-5`)로 확인했다. 취소·환불 문의에는 `order-cancel`을, 배송 문의에는 `delivery-delay`를 먼저 읽고 그 본문에만 있는 내용(환불 영업일 3일, 지연 보상 적립금)으로 답했다. 스킬과 무관한 금액 문의에는 스킬을 읽지 않았다. 문의 세 건을 한 번씩 돌린 결과다.
+- **확인하지 않은 것**: 그 밖의 `main`은 실제 API로 실행해 보지 않았다. OpenAI 호환 API로는 한 번도 호출하지 않았다.
