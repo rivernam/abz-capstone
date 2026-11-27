@@ -8,7 +8,7 @@
 
 실행: python skills.py   (API 키 필요)
 """
-import logging
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -72,12 +72,23 @@ def read_skill_tool(skills: list[Skill]) -> Tool:
         read_skill)
 
 
+# 문의마다 필요한 스킬이 다르다. 모델이 어떤 스킬을 골라 읽는지 Tool 호출 순서로 확인한다.
+INQUIRIES = [
+    "A-100 주문 금액이 얼마였죠?",                          # 스킬이 필요 없는 문의
+    "A-200 주문 언제 도착하나요? 늦어지면 보상이 있나요?",    # delivery-delay
+    "A-100 주문 취소해 주세요. 환불은 언제 되나요?",          # order-cancel
+]
+
+
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="  [%(name)s] %(message)s")
     skills = load_skills()
-    result = run_agent_from_env(
-        "A-100 주문 취소해 주세요. 환불은 언제 되나요?",
-        system=SYSTEM + skill_catalog(skills),      # 목록만 붙인다
-        tools=[*TOOLS, read_skill_tool(skills)],    # Tool 하나를 더한다
-    )
-    print(result.text if result.ok else f"[중단] {result.reason}")
+    system = SYSTEM + skill_catalog(skills)      # 목록만 붙인다
+    tools = [*TOOLS, read_skill_tool(skills)]    # Tool 하나를 더한다
+    for inquiry in INQUIRIES:
+        calls = []
+        result = run_agent_from_env(
+            inquiry, system=system, tools=tools,
+            on_tool=lambda name, args, output, is_error: calls.append(f"{name}({json.dumps(args, ensure_ascii=False)})"))
+        print(f"문의: {inquiry}")
+        print(f"Tool 호출: {' → '.join(calls) or '없음'}")
+        print(f"답: {result.text if result.ok else f'[중단] {result.reason}'}\n")

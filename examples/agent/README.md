@@ -195,11 +195,10 @@ description: 고객이 주문 취소나 환불 시점을 물을 때 쓴다. 취�
 
 ```python
 skills = load_skills()
-result = run_agent_from_env(
-    "A-100 주문 취소해 주세요. 환불은 언제 되나요?",
-    system=SYSTEM + skill_catalog(skills),      # 목록만 붙인다
-    tools=[*TOOLS, read_skill_tool(skills)],    # Tool 하나를 더한다
-)
+system = SYSTEM + skill_catalog(skills)      # 목록만 붙인다
+tools = [*TOOLS, read_skill_tool(skills)]    # Tool 하나를 더한다
+for inquiry in INQUIRIES:
+    result = run_agent_from_env(inquiry, system=system, tools=tools, on_tool=...)
 ```
 
 "환불은 영업일 기준 3일 안에 된다"는 내용은 `order-cancel` 스킬 본문에만 있다. 모델은 스킬을 읽어야 이 답을 할 수 있다.
@@ -209,6 +208,35 @@ result = run_agent_from_env(
 - **`read_skill`은 목록에 있는 이름만 읽는다.** 모델이 넘긴 값을 파일 경로로 쓰지 않으므로 임의의 파일을 읽게 할 수 없다.
 - **스킬이 수십 개여도 평소 프롬프트는 짧다.** 늘어나는 것은 스킬 하나당 한 줄이다.
 - **머리말은 `키: 값` 줄만 읽는다.** 샘플을 단순하게 하려는 것이고, 실제 스킬 머리말은 YAML이다.
+
+#### 실제 호출 결과
+
+`skills.py`와 `Skills.java`의 `main`은 필요한 스킬이 서로 다른 문의 세 건을 차례로 처리하고, 문의마다 모델이 부른 Tool과 답을 출력한다. 2026-11-27에 Claude API(`claude-opus-5-5`)로 두 언어에서 한 번씩 실행했다. Tool 호출 순서는 두 언어에서 같았다.
+
+| 문의 | 모델이 부른 Tool (순서대로) | 답에 쓰인 스킬 내용 |
+|---|---|---|
+| A-100 주문 금액이 얼마였죠? | `get_order(A-100)` | 스킬을 읽지 않았다 |
+| A-200 주문 언제 도착하나요? 늦어지면 보상이 있나요? | `read_skill(delivery-delay)` → `get_order(A-200)` | 출고 후 영업일 기준 3일 안에 도착, 5일이 지나면 적립금 2,000원, 보상은 상담원이 지급 |
+| A-100 주문 취소해 주세요. 환불은 언제 되나요? | `read_skill(order-cancel)` → `get_order(A-100)` → `cancel_order(A-100)` | 환불은 영업일 기준 3일 안에 결제 수단으로 |
+
+- **스킬 선택**: 두 문의 모두 맞는 스킬을 다른 Tool보다 먼저 읽었다.
+- **본문 사용**: 환불 기한과 지연 보상은 스킬 본문에만 있는 내용인데 답에 그대로 나왔다. `order-cancel`의 절차(조회 후 취소)도 순서대로 따랐다.
+- **불필요한 읽기 없음**: 스킬과 무관한 금액 문의에서는 스킬을 읽지 않고 바로 조회했다.
+
+Java에서 `mvn -q compile exec:java "-Dexec.mainClass=Skills"`로 받은 출력 중 세 번째 문의다.
+
+```
+문의: A-100 주문 취소해 주세요. 환불은 언제 되나요?
+Tool 호출: read_skill({name=order-cancel}) → get_order({order_id=A-100}) → cancel_order({order_id=A-100})
+답: A-100 주문을 취소했습니다.
+
+- **환불 금액:** 32,000원
+- **환불 시점:** 오늘 취소됐으므로 영업일 기준 3일 안에 결제하신 수단으로 돌아갑니다.
+
+3영업일이 지나도 환불이 확인되지 않으면 다시 문의해 주세요.
+```
+
+문의마다 한 번씩 돌린 결과다. 모델의 답은 실행할 때마다 문장이 달라지고, 스킬 선택도 항상 같다는 보장은 없다.
 
 지침이 적고 항상 필요하면 시스템 프롬프트에 그대로 두는 편이 단순하다. 스킬은 지침이 여러 종류이고 요청마다 필요한 것이 다를 때 쓴다.
 
@@ -459,5 +487,5 @@ reply = complete(SYNTHESIS_SYSTEM, [...])             # 지휘자: 결과를 모
 - **Python**: 시험 42개가 통과한다. 두 에이전트 루프는 가짜 클라이언트로, 운영 요소 네 가지는 가짜 모델 함수로 확인했다. MCP는 주문 서버를 실제 하위 프로세스로 띄워 왕복했다(`mcp` 2.3.0). `service.py`는 그대로 실행했다.
 - **Java**: Maven 3.9.16으로 빌드했고 `SampleTests` 26개가 통과한다. 두 에이전트 루프는 시험 안에서 가짜 API 서버를 띄워, SDK가 실제로 HTTP 요청을 보내고 응답을 읽는 경로로 끝까지 실행했다. MCP는 `McpOrderServer`를 실제 하위 프로세스로 띄워 왕복했다(MCP Java SDK 2.2.0). `AgentService`는 `mvn` 명령 그대로 실행했다.
 - **Java의 JSON 라이브러리**: 샘플 코드는 Jackson 3(3.3.0)을 쓴다. Claude·OpenAI SDK는 내부에서 Jackson 2를 쓰므로 Jackson 2도 클래스 경로에 함께 있다. 두 계열이 같이 쓰는 `jackson-annotations`의 버전은 `pom.xml`의 `jackson-bom`이 맞춘다.
-- **실제 API 호출**: Skills만 Claude API(`claude-opus-5-5`)로 확인했다. 취소·환불 문의에는 `order-cancel`을, 배송 문의에는 `delivery-delay`를 먼저 읽고 그 본문에만 있는 내용(환불 영업일 3일, 지연 보상 적립금)으로 답했다. 스킬과 무관한 금액 문의에는 스킬을 읽지 않았다. 문의 세 건을 한 번씩 돌린 결과다.
-- **확인하지 않은 것**: 그 밖의 `main`은 실제 API로 실행해 보지 않았다. OpenAI 호환 API로는 한 번도 호출하지 않았다.
+- **실제 API 호출**: Skills를 Claude API(`claude-opus-5-5`)로 Python과 Java에서 실행했다. `python skills.py`와 `mvn -q compile exec:java "-Dexec.mainClass=Skills"`를 그대로 돌렸고, 결과는 [Skills의 "실제 호출 결과"](#실제-호출-결과)에 있다.
+- **확인하지 않은 것**: 그 밖의 `main`(기본 루프, MCP, 운영 요소)은 실제 API로 실행해 보지 않았다. OpenAI 호환 API로는 한 번도 호출하지 않았다.

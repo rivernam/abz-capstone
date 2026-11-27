@@ -110,14 +110,24 @@ public final class Skills {
         });
     }
 
+    /** 문의마다 필요한 스킬이 다르다. 모델이 어떤 스킬을 골라 읽는지 Tool 호출 순서로 확인한다. */
+    static final List<String> INQUIRIES = List.of(
+            "A-100 주문 금액이 얼마였죠?",                         // 스킬이 필요 없는 문의
+            "A-200 주문 언제 도착하나요? 늦어지면 보상이 있나요?",   // delivery-delay
+            "A-100 주문 취소해 주세요. 환불은 언제 되나요?");        // order-cancel
+
     public static void main(String[] args) {
         List<Skill> skills = load(SKILLS_DIR);
+        String system = OrderTools.SYSTEM + catalog(skills); // 목록만 붙인다
         List<OrderTools.Tool> tools = new ArrayList<>(OrderTools.TOOLS);
         tools.add(readSkillTool(skills)); // Tool 하나를 더한다
-        AgentResult result = AgentRunner.runFromEnv(
-                "A-100 주문 취소해 주세요. 환불은 언제 되나요?",
-                OrderTools.SYSTEM + catalog(skills), // 목록만 붙인다
-                tools);
-        System.out.println(result.display());
+        for (String inquiry : INQUIRIES) {
+            List<String> calls = new ArrayList<>();
+            AgentResult result = AgentRunner.runFromEnv(inquiry, system, tools,
+                    (name, toolArgs, output) -> calls.add(name + "(" + toolArgs + ")"));
+            System.out.println("문의: " + inquiry);
+            System.out.println("Tool 호출: " + (calls.isEmpty() ? "없음" : String.join(" → ", calls)));
+            System.out.println("답: " + result.display() + "\n");
+        }
     }
 }
