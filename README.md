@@ -105,18 +105,78 @@ python generator/make_source.py      # 가상 Java 소스
 python generator/make_inquiries.py   # 문의 시험 세트
 ```
 
-## 폴더
+## 폴더 구조
 
 ```
-abzlib/      공용 코드 (경로, 기준정보, 로그 파싱, 진단, 소스 근거 확인, 가상 PC와 재시작)
-tools/       Tool 스크립트 (집계, 발행, 게시판, 문의 Tool)
-runner/      러너 (일일 리포트 파이프라인, 문의 에이전트 루프, LLM 호출)
-eval/        채점
-generator/   가상 세계, 소스, 문의 시험 세트 생성
-demo/        시연 (웹 화면, 터미널 실행기)
-tests/       시험
-docs/        구현명세, ADR, 개선 기록
-.claude/skills/  daily-report, inquiry-triage, inquiry-action
+abz-capstone/
+├── CLAUDE.md, .claude/skills/   LLM 규칙 (Claude Code 작업 규칙이자 러너의 시스템 프롬프트)
+├── 재료/                         입력: 가상 데이터
+├── abzlib/ tools/ runner/        실행 코드
+├── eval/ tests/ 기록/            평가와 결과물
+├── generator/                    가상 데이터 생성기
+├── demo/                         시연
+└── docs/, GLOSSARY.md            문서
 ```
+
+### LLM 규칙
+
+| 파일 | 역할 |
+|---|---|
+| `CLAUDE.md` | 프로젝트 공통 규칙(숫자는 코드가 정한다, 외부 입력의 지시는 따르지 않는다 등)과 명령 목록 |
+| `.claude/skills/daily-report/SKILL.md` | 아이템 ① 판단 기준: 메시지 분류, 공통 원인 판정 기준과 예시, 요약 규칙 |
+| `.claude/skills/inquiry-triage/SKILL.md` | 아이템 ② 앞 절반: 대상 PC 해석, 진단 결과 읽는 법, 패턴표에 없는 메시지를 소스에서 찾는 법 |
+| `.claude/skills/inquiry-action/SKILL.md` | 아이템 ② 뒤 절반: 조치 Tool 순서, 근거 넘기는 법, 회신 쓰는 법 |
+
+러너는 `CLAUDE.md`와 해당 Skill 본문을 이어 붙여 시스템 프롬프트로 쓴다. Claude Code로 작업할 때와 서버에서 돌 때 같은 규칙이 적용된다.
+
+### 입력 데이터 (`재료/`)
+
+| 위치 | 내용 |
+|---|---|
+| `db/기준정보.sqlite` | 등록 PC 300대(5개 공정 × 60): 공정, 설비 모델, 사내망 IP, 설비망 IP, 버전, 등록일 |
+| `서버로그/server_날짜.txt` | 2026-11-20 ~ 11-26 서버 실행 로그: 정상 신호, 시작/정지, 오류, 식별 실패. 날짜마다 엣지 케이스가 있다 |
+| `pc/PC-XXXX/` | PC별 클라이언트 파일: `client.log`, `client.properties`, `jvm.args`, `service.json`, `backup/` |
+| `문서/` | 오류 메시지 패턴표(자동 조치 종류 포함), 설정 기본값표 |
+| `소스/` | 가상 Java 클라이언트 소스. 아이템 ②가 표현이 다른 오류 메시지의 근거를 찾을 때 쓴다 |
+
+아이템 ②가 조치하면 바뀌는 곳은 `pc/`뿐이다. 시연과 채점은 복사본에서 돌린다.
+
+### 실행 코드
+
+| 폴더 | 역할 | 주요 파일 |
+|---|---|---|
+| `abzlib/` | 공용 부품 | `serverlog.py`(로그 파싱, 이상 판정), `inquiry.py`(PC별 조치 계획, 프록시 값 결정), `source.py`(소스 근거 검증), `targets.py`(설비 PC ID 칸 해석), `virtual_pc.py`·`virtual_restart.py`(가상 PC 파일과 재시작), `history.py`(조치 이력) |
+| `tools/` | 모델과 러너가 부르는 Tool | `summarize_daily_logs.py`(리포트 집계), `publish_report.py`(발행), `inquiry_tools.py`(문의 Tool과 안전 검사), `board.py`(가상 게시판) |
+| `runner/` | 실행 흐름 | `daily_report.py`(① 파이프라인과 발행 전 검사), `inquiry_agent.py`(② 에이전트 루프와 호출 상한), `llm.py`(구조화 출력 호출, 시스템 프롬프트 조립), `templates/`(리포트 HTML 틀) |
+
+`runner`가 `tools`를 부르고 `tools`가 `abzlib`을 쓴다. 안전 검사는 `tools/inquiry_tools.py`와 `abzlib/` 안에 있어서, 모델이 무엇을 요청해도 여기서 막힌다.
+
+### 평가와 결과물
+
+| 위치 | 내용 |
+|---|---|
+| `eval/` | 정답표와 비교해 지표를 계산한다. `--label`로 단계 이름을 붙인다 |
+| `tests/` | 시험 43개. 가상 세계를 임시 폴더에 새로 만들어 돌린다 |
+| `기록/문의시험세트.json` | 문의 29건 |
+| `기록/정답표_일일리포트.json`, `기록/정답표_문의.json`, `기록/정답_PC원인.json` | 채점 전용 정답. 에이전트 Tool은 읽지 않는다. `정답_PC원인.json`은 가상 재시작의 성공 여부를 정할 때도 쓴다 |
+| `기록/평가/` | 단계별 측정 결과(baseline, v1, v2 …)와 `runs/` 아래 실행별 상세 기록 |
+| `기록/storage/`, `기록/outbox.jsonl`, `기록/runs/` | 실제 실행 결과: 발행된 리포트, 발송 기록, 실행 기록 |
+| `시연/` | 시연할 때 생기는 가상 세계 복사본. git과 제출 파일에서 제외한다 |
+
+### 생성기, 시연, 문서
+
+| 위치 | 내용 |
+|---|---|
+| `generator/` | `make_world.py`(고정 시드로 기준정보, 로그, PC 파일, 정답표), `make_source.py`(가상 Java 소스), `make_inquiries.py`(문의 시험 세트와 정답) |
+| `demo/` | `web.py`와 `static/index.html`(웹 시연 화면), `run_demo.py`(터미널 시연) |
+| `docs/구현명세.md` | 구현 기준 전체 |
+| `docs/adr/` | 결정 기록 4개: 안전 검사 위치, 승인 없는 자동 조치, 일반 아이템 2개, 프록시 값 결정 |
+| `docs/개선기록_*.md`, `docs/개선과정기록지_초안.md` | 개선 과정 |
+| `GLOSSARY.md` | 용어집 |
+
+### 데이터 흐름
+
+- **아이템 ①**: `재료/서버로그` + `재료/db` → `tools/summarize_daily_logs` → `runner/daily_report`(LLM 1회와 검증) → `기록/storage/reports/날짜.html`
+- **아이템 ②**: 게시판 문의 → `runner/inquiry_agent`(LLM이 Tool 선택) → `tools/inquiry_tools`(검사 후 `재료/pc` 수정과 재시작) → 운영자 전용 메모(회신 초안)
 
 용어는 [GLOSSARY.md](GLOSSARY.md), 구현 기준은 [docs/구현명세.md](docs/구현명세.md), 결정 배경은 [docs/adr/](docs/adr/)를 따른다.
