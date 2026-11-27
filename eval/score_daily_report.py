@@ -77,6 +77,10 @@ def score(summary, record, answer, patterns):
             "message_classes": len(cls_exp), "message_classes_correct": cls_ok,
             "cause_match_rate": round(cause_ok / cause_total, 3) if cause_total else 1.0,
             "ungrounded_numbers": len(record["ungrounded_numbers"]),
+            # 발행 전 검사(개선 3) 이전 기록에는 summary_guard가 없다. 그때는 첫 요약이 곧 발행된 요약이다.
+            "ungrounded_first_draft": len((record.get("summary_guard") or {}).get("first_ungrounded", record["ungrounded_numbers"])),
+            "summary_regenerated": int(bool((record.get("summary_guard") or {}).get("regenerated"))),
+            "sentences_dropped": len((record.get("summary_guard") or {}).get("dropped_sentences", [])),
             "judgement_issues": len(record["issues"]),
         },
     }
@@ -96,7 +100,9 @@ def aggregate(day_scores):
                 "proxy_pc_accuracy": round(s("proxy_pc_correct") / max(1, s("proxy_clusters")), 3),
                 "proxy_pc_wrongly_named": s("proxy_pc_wrongly_named"),
                 "cause_match_rate": round(sum(d["llm"]["cause_match_rate"] for d in day_scores) / len(day_scores), 3),
-                "ungrounded_numbers": s("ungrounded_numbers"), "judgement_issues": s("judgement_issues")},
+                "ungrounded_numbers": s("ungrounded_numbers"), "ungrounded_first_draft": s("ungrounded_first_draft"),
+                "summary_regenerated": s("summary_regenerated"), "sentences_dropped": s("sentences_dropped"),
+                "judgement_issues": s("judgement_issues")},
     }
 
 

@@ -127,3 +127,47 @@ def test_publish_report_validates(tmp_path):
 def test_missing_day_is_error(world):
     r = summarize("2026-01-01", log_dir=world["log"], db_path=world["db"])
     assert r["is_error"] and "next" in r
+
+
+class ScriptedSummaryLLM(PerfectLLM):
+    """첫 호출은 PerfectLLM처럼 판단하고 주어진 요약을 내고, 요약 재생성 호출에는 정해 둔 요약을 돌려준다."""
+
+    def __init__(self, ans, first, retry):
+        super().__init__(ans, first)
+        self.retry, self.calls = retry, []
+
+    def call(self, system, user, schema):
+        self.calls.append(schema)
+        if set(schema["properties"]) == {"summary"}:
+            req = json.loads(user)
+            assert req["ungrounded_tokens"] and "previous_summary" in req
+            return {"summary": self.retry}, {"model": "fake"}
+        return super().call(system, user, schema)
+
+
+def test_guard_regenerates_summary_with_ungrounded_date(world, tmp_path):
+    bad = "2024-11-25 기준 이상 PC를 정리했다. 공통 원인 묶음을 확인한다."
+    good = f"{DAY} 기준 이상 PC를 정리했다. 공통 원인 묶음을 확인한다."
+    llm = ScriptedSummaryLLM(world["ans"], bad, good)
+    r = run(DAY, llm=llm, publish=False, log_dir=world["log"], db_path=world["db"], runs_dir=tmp_path)
+    g = r["record"]["summary_guard"]
+    assert g["first_ungrounded"] == ["2024-11-25"] and g["regenerated"] and not g["dropped_sentences"]
+    assert r["record"]["llm_output"]["summary"] == good and r["record"]["ungrounded_numbers"] == []
+    assert "2024-11-25" not in r["html"]
+    s = score(r["summary"], r["record"], world["ans"], world["patterns"])
+    assert s["llm"]["ungrounded_first_draft"] == 1 and s["llm"]["ungrounded_numbers"] == 0 and s["llm"]["summary_regenerated"] == 1
+
+
+def test_guard_drops_sentence_when_retry_still_ungrounded(world, tmp_path):
+    bad = "이상 PC가 줄었다. 포트 8443에서 충돌이 났다."
+    llm = ScriptedSummaryLLM(world["ans"], bad, bad)
+    r = run(DAY, llm=llm, publish=False, log_dir=world["log"], db_path=world["db"], runs_dir=tmp_path)
+    g = r["record"]["summary_guard"]
+    assert g["regenerated"] and g["dropped_sentences"] == ["포트 8443에서 충돌이 났다."]
+    assert r["record"]["llm_output"]["summary"] == "이상 PC가 줄었다." and r["record"]["ungrounded_numbers"] == []
+
+
+def test_guard_skips_clean_summary(world, tmp_path):
+    llm = ScriptedSummaryLLM(world["ans"], None, "쓰이면 안 된다")
+    r = run(DAY, llm=llm, publish=False, log_dir=world["log"], db_path=world["db"], runs_dir=tmp_path)
+    assert len(llm.calls) == 1 and r["record"]["summary_guard"]["regenerated"] is False

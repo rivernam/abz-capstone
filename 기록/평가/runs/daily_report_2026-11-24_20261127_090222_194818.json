@@ -1,0 +1,71 @@
+{
+  "report_date": "2026-11-24",
+  "generated_at": "2026-11-27 09:02",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 5030,
+    "output_tokens": 1495
+  },
+  "input_sha256": "9ecb8a6ffbe00914015802d395ceab5bf1bd5c45db80f6d4e7d7cf08d0e9809d",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": true,
+        "cause": "클라이언트 2.4.2 버전의 배포 설정에 있는 로그 레벨 값이 잘못되어 같은 시간대에 설정 파싱 오류가 난 것으로 추정된다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": false,
+        "cause": "C1과 같은 4대, 같은 시간대의 같은 사건을 오류 유형 기준으로 다시 잡은 중복 묶음이므로 C1만 의미 있는 묶음으로 본다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "2026-11-24 기준 등록 PC 300대 중 정상 PC는 291대이고 정상 비율은 97.0%입니다. 이상 PC는 9대이며 모두 error 유형이고, 전일 이상 PC는 33대였습니다. 의미 있는 묶음은 클라이언트 2.4.2 버전 PC 4대에서 설정 파싱 오류(config parse failed)가 같은 시간대에 발생한 1건이며, 배포 설정의 로그 레벨 값을 우선 확인하는 것이 좋습니다. 식별 실패는 3건이고 확인 필요 PC는 0대입니다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "summary_guard": {
+    "first_ungrounded": [],
+    "regenerated": false,
+    "dropped_sentences": []
+  },
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "pattern:config parse failed",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": true,
+      "cause": "클라이언트 2.4.2 버전의 배포 설정에 있는 로그 레벨 값이 잘못되어 같은 시간대에 설정 파싱 오류가 난 것으로 추정된다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C1과 같은 4대, 같은 시간대의 같은 사건을 오류 유형 기준으로 다시 잡은 중복 묶음이므로 C1만 의미 있는 묶음으로 본다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}

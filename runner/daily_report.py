@@ -2,7 +2,8 @@
 
 1. summarize_daily_logs로 집계한다(코드).
 2. LLM 한 번 호출로 처음 보는 오류 메시지 분류, 묶음 판단, 요약 문장을 받는다.
-3. 판단 결과를 검증하고 HTML을 만든다(코드).
+3. 판단 결과를 검증하고 HTML을 만든다(코드). 요약에 출처 없는 숫자가 있으면 요약만 한 번 다시 쓰게 하고,
+   그래도 남으면 그 문장을 빼고 발행한다.
 4. publish_report로 발행한다(멱등).
 5. 실행 기록을 기록/runs/에 남긴다.
 
@@ -120,6 +121,46 @@ def ungrounded_numbers(text, inp):
     return bad
 
 
+SUMMARY_SCHEMA = {"type": "object", "additionalProperties": False, "required": ["summary"],
+                  "properties": {"summary": {"type": "string"}}}
+SENTENCE_SPLIT = r"(?<=[.다])\s+"
+
+
+def drop_sentences(text, tokens):
+    """출처 없는 토큰이 든 문장을 뺀다. 재생성으로도 못 고친 경우의 마지막 방어선이다."""
+    keep = [x for x in re.split(SENTENCE_SPLIT, text) if x.strip() and not any(t in x for t in tokens)]
+    return " ".join(keep)
+
+
+def guard_summary(llm, system, inp, summary):
+    """발행 전 검사(개선 3). 요약에 출처 없는 숫자가 있으면 요약만 한 번 다시 쓰게 하고, 그래도 남으면 그 문장을 뺀다.
+
+    돌려주는 값: (발행할 요약, 기록용 dict)
+    """
+    first = ungrounded_numbers(summary, inp)
+    log = {"first_ungrounded": first, "regenerated": False, "dropped_sentences": []}
+    if not first:
+        return summary, log
+    request = {
+        "input": inp,
+        "previous_summary": summary,
+        "ungrounded_tokens": first,
+        "instruction": "previous_summary에 input에 없는 숫자나 식별자(ungrounded_tokens)가 있다. 그 부분을 input.facts의 값으로 "
+                       "바로잡거나 빼고, 나머지 내용과 문장 수는 그대로 둔 요약을 summary에 다시 쓴다. 날짜는 facts.report_date를 그대로 쓴다.",
+    }
+    try:
+        fixed, usage = llm.call(system, json.dumps(request, ensure_ascii=False), SUMMARY_SCHEMA)
+        log.update({"regenerated": True, "regenerated_summary": fixed["summary"], "regenerate_usage": usage})
+        summary = fixed["summary"]
+    except LLMError as e:
+        log["regenerate_error"] = str(e)
+    left = ungrounded_numbers(summary, inp)
+    if left:
+        log["dropped_sentences"] = [x for x in re.split(SENTENCE_SPLIT, summary) if any(t in x for t in left)]
+        summary = drop_sentences(summary, left)
+    return summary, log
+
+
 def apply_judgement(s, out, patterns):
     """LLM 판단을 검증해 집계 결과에 붙인다. 빠지거나 잘못된 항목은 고정 값으로 채운다."""
     by_pattern = {p["message_pattern"]: p for p in patterns}
@@ -181,7 +222,7 @@ def render_html(s, msg_classes, summary, generated_at):
         f'<div class="bar"><b>{_esc(p)}</b><div class="track"><div class="fill" style="width:{v["normal_ratio"]}%"></div></div>'
         f'<span class="n">{v["normal_ratio"]}% · 정상 {v["normal"]} / {v["registered"]}대</span></div>'
         for p, v in s["by_process"].items())
-    summ = "".join(f"<p>{_esc(x.strip())}</p>" for x in re.split(r"(?<=[.다])\s+", summary) if x.strip())
+    summ = "".join(f"<p>{_esc(x.strip())}</p>" for x in re.split(SENTENCE_SPLIT, summary) if x.strip())
 
     good = [c for c in s["cluster_candidates"] if c["meaningful"]]
     if good:
@@ -253,6 +294,10 @@ def run(day, llm=None, publish=True, log_dir=None, db_path=None, storage_dir=Non
         # LLM 없이도 숫자 리포트는 나가야 한다. 판단 칸은 비우고 사유를 남긴다.
         out, usage = {"message_classes": [], "clusters": [], "summary": f"LLM 판단을 받지 못해 요약을 생략했다({e})."}, {"error": str(e)}
     msg_classes, issues = apply_judgement(s, out, patterns)
+    if usage.get("error"):
+        guard = {"first_ungrounded": [], "regenerated": False, "dropped_sentences": [], "skipped": "LLM 호출 실패"}
+    else:
+        out["summary"], guard = guard_summary(llm, system, inp, out["summary"])
     ungrounded = ungrounded_numbers(out["summary"], inp)
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
     page = render_html(s, msg_classes, out["summary"], generated_at)
@@ -260,7 +305,7 @@ def run(day, llm=None, publish=True, log_dir=None, db_path=None, storage_dir=Non
     record = {
         "report_date": day, "generated_at": generated_at, "usage": usage,
         "input_sha256": hashlib.sha256(json.dumps(inp, ensure_ascii=False, sort_keys=True).encode()).hexdigest(),
-        "llm_output": out, "issues": issues, "ungrounded_numbers": ungrounded,
+        "llm_output": out, "issues": issues, "ungrounded_numbers": ungrounded, "summary_guard": guard,
         "message_classes": msg_classes,
         "clusters": [{k: c[k] for k in ("id", "signal", "pcs", "shared", "meaningful", "cause", "proxy_pc")} for c in s["cluster_candidates"]],
         "publish": pub,

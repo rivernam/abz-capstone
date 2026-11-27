@@ -1,0 +1,204 @@
+{
+  "report_date": "2026-11-22",
+  "generated_at": "2026-11-27 09:00",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 7306,
+    "output_tokens": 3105
+  },
+  "input_sha256": "fc77765957cec3526f83491647eebbc8763165e95d8a00acf26666509d0ef22b",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": false,
+        "cause": "묶인 5대의 메시지가 heartbeat send failed 4대와 license check timeout 1대로 서로 달라 같은 원인으로 보기 어렵고, LITHO 공정 공유는 원인을 설명하지 않아 우연으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": true,
+        "cause": "LITHO 공정 LT-700 4대가 같은 사내망 IP 그룹을 쓰면서 heartbeat send failed가 함께 나타나, 같은 네트워크 경로의 통신 지연으로 추정된다. 입력에는 같은 그룹에서 신호만 끊기고 오류가 없는 프록시 PC가 확인되지 않아 proxy_pc는 비워 둔다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C3",
+        "meaningful": false,
+        "cause": "C2와 같은 4대와 같은 사내망 IP 그룹을 type:error 기준으로 잡은 중복 묶음이라, 원인을 더 잘 설명하는 C2를 대표로 둔다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C4",
+        "meaningful": false,
+        "cause": "bind failed는 PC 안의 포트 충돌이라 PC마다 따로 생기며, CLEAN 공정 공유만으로는 이를 설명하지 못해 우연으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C5",
+        "meaningful": false,
+        "cause": "C2와 같은 heartbeat 사건을 클라이언트 버전 2.4.2 기준으로 잡은 부분 묶음이다. 버전은 통신 지연을 설명하지 않으므로 C2가 대표한다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C6",
+        "meaningful": false,
+        "cause": "C4와 같은 3대와 같은 bind failed를 type:error 기준으로 잡은 중복 묶음이라 false로 둔다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C7",
+        "meaningful": false,
+        "cause": "클라이언트 버전 2.4.0 기준으로 묶였지만 heartbeat send failed 2대와 license check timeout 1대가 섞여 있고 공정과 장비도 달라, 같은 원인이 아니라 우연으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C8",
+        "meaningful": false,
+        "cause": "C2와 같은 heartbeat 사건을 클라이언트 버전 2.4.2 기준으로 잡은 부분 묶음이다. 버전은 원인을 설명하지 않으므로 C2가 대표한다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "정상 PC는 300대 중 288대로 정상 비율은 96.0%다. 이상 PC는 12대로 전일 11대에서 늘었고, CLEAN과 LITHO 공정의 정상 비율이 각 91.7%로 낮다. 의미 있는 묶음은 LITHO 공정 4대의 heartbeat send failed(C2)로, 같은 사내망 그룹에서 통신 지연이 생긴 것으로 보이며 프록시 PC는 확인되지 않았다. 나머지 후보는 메시지가 섞였거나 공정·버전만 같아 우연으로 보고 제외했다. 식별 실패와 확인 필요 PC는 0대다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "summary_guard": {
+    "first_ungrounded": [],
+    "regenerated": false,
+    "dropped_sentences": []
+  },
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0146",
+        "PC-D0152"
+      ],
+      "shared": {
+        "process": "LITHO"
+      },
+      "meaningful": false,
+      "cause": "묶인 5대의 메시지가 heartbeat send failed 4대와 license check timeout 1대로 서로 달라 같은 원인으로 보기 어렵고, LITHO 공정 공유는 원인을 설명하지 않아 우연으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "pattern:heartbeat send failed",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "process": "LITHO",
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.66",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": true,
+      "cause": "LITHO 공정 LT-700 4대가 같은 사내망 IP 그룹을 쓰면서 heartbeat send failed가 함께 나타나, 같은 네트워크 경로의 통신 지연으로 추정된다. 입력에는 같은 그룹에서 신호만 끊기고 오류가 없는 프록시 PC가 확인되지 않아 proxy_pc는 비워 둔다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C3",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0129",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.66",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 4대와 같은 사내망 IP 그룹을 type:error 기준으로 잡은 중복 묶음이라, 원인을 더 잘 설명하는 C2를 대표로 둔다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C4",
+      "signal": "pattern:bind failed",
+      "pcs": [
+        "PC-B0102",
+        "PC-B0105",
+        "PC-B0108"
+      ],
+      "shared": {
+        "process": "CLEAN"
+      },
+      "meaningful": false,
+      "cause": "bind failed는 PC 안의 포트 충돌이라 PC마다 따로 생기며, CLEAN 공정 공유만으로는 이를 설명하지 못해 우연으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C5",
+      "signal": "pattern:heartbeat send failed",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 heartbeat 사건을 클라이언트 버전 2.4.2 기준으로 잡은 부분 묶음이다. 버전은 통신 지연을 설명하지 않으므로 C2가 대표한다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C6",
+      "signal": "type:error",
+      "pcs": [
+        "PC-B0102",
+        "PC-B0105",
+        "PC-B0108"
+      ],
+      "shared": {
+        "process": "CLEAN"
+      },
+      "meaningful": false,
+      "cause": "C4와 같은 3대와 같은 bind failed를 type:error 기준으로 잡은 중복 묶음이라 false로 둔다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C7",
+      "signal": "type:error",
+      "pcs": [
+        "PC-C0143",
+        "PC-D0129",
+        "PC-D0146"
+      ],
+      "shared": {
+        "client_version": "2.4.0"
+      },
+      "meaningful": false,
+      "cause": "클라이언트 버전 2.4.0 기준으로 묶였지만 heartbeat send failed 2대와 license check timeout 1대가 섞여 있고 공정과 장비도 달라, 같은 원인이 아니라 우연으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C8",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0117",
+        "PC-D0137",
+        "PC-D0152"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C2와 같은 heartbeat 사건을 클라이언트 버전 2.4.2 기준으로 잡은 부분 묶음이다. 버전은 원인을 설명하지 않으므로 C2가 대표한다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}

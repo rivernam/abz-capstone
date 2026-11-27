@@ -1,0 +1,71 @@
+{
+  "report_date": "2026-11-24",
+  "generated_at": "2026-11-27 08:59",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 5030,
+    "output_tokens": 1253
+  },
+  "input_sha256": "9ecb8a6ffbe00914015802d395ceab5bf1bd5c45db80f6d4e7d7cf08d0e9809d",
+  "llm_output": {
+    "message_classes": [],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": true,
+        "cause": "같은 클라이언트 버전 PC 4대가 같은 설정 키의 값 오류(config parse failed)로 함께 실패했으므로, 해당 버전에 배포된 설정 값이 원인으로 추정된다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": false,
+        "cause": "C1과 같은 PC 4대와 같은 사건을 이상 유형(error) 기준으로 다시 잡은 중복 후보다. 원인을 더 잘 설명하는 C1만 의미 있는 묶음으로 둔다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "2026-11-24 정상 PC 비율은 97.0%이며, 등록 300대 중 정상 291대, 이상 9대다. 전일 이상 PC는 33대였다. 의미 있는 묶음은 같은 클라이언트 버전 PC 4대가 같은 설정 값 오류(config parse failed)로 함께 실패한 건으로, 해당 버전의 설정 배포를 확인해야 한다. 식별 실패는 3건이며 PC ID가 특정되지 않은 항목이 있어 확인이 필요하다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "summary_guard": {
+    "first_ungrounded": [],
+    "regenerated": false,
+    "dropped_sentences": []
+  },
+  "message_classes": [],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "pattern:config parse failed",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": true,
+      "cause": "같은 클라이언트 버전 PC 4대가 같은 설정 키의 값 오류(config parse failed)로 함께 실패했으므로, 해당 버전에 배포된 설정 값이 원인으로 추정된다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0155",
+        "PC-B0123",
+        "PC-D0107",
+        "PC-E0142"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "C1과 같은 PC 4대와 같은 사건을 이상 유형(error) 기준으로 다시 잡은 중복 후보다. 원인을 더 잘 설명하는 C1만 의미 있는 묶음으로 둔다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}

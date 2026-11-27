@@ -1,0 +1,386 @@
+{
+  "report_date": "2026-11-25",
+  "generated_at": "2026-11-27 09:02",
+  "usage": {
+    "model": "claude-haiku-5-5",
+    "input_tokens": 11926,
+    "output_tokens": 5549
+  },
+  "input_sha256": "7700a5df199d1d06cdc060d1bc4c5a5855da8738eae7c5b4df26b913e41d6e66",
+  "llm_output": {
+    "message_classes": [
+      {
+        "message": "Connection refused: connect",
+        "matched_pattern": "connection refused",
+        "reason": "서버 접속 거부라는 같은 원인이며 대소문자와 표기만 다르다."
+      },
+      {
+        "message": "OutOfMemoryError: Java heap space",
+        "matched_pattern": "java.lang.OutOfMemoryError",
+        "reason": "java.lang 접두어만 빠졌을 뿐 JVM 힙 메모리 부족이라는 같은 원인이다."
+      },
+      {
+        "message": "SSL handshake failed: certificate expired",
+        "matched_pattern": "NEW",
+        "reason": "인증서 만료는 패턴표의 어떤 원인과도 같지 않다."
+      },
+      {
+        "message": "disk full: cannot write spool file",
+        "matched_pattern": "NEW",
+        "reason": "디스크 부족은 패턴표의 어떤 원인과도 같지 않다."
+      },
+      {
+        "message": "failed to parse config: retry_count=abc",
+        "matched_pattern": "config parse failed",
+        "reason": "설정 값 파싱 실패라는 같은 원인이다."
+      },
+      {
+        "message": "license server timeout (30000ms)",
+        "matched_pattern": "license check timeout",
+        "reason": "라이선스 서버 응답 지연이라는 같은 원인이며 단위 표기만 다르다."
+      }
+    ],
+    "clusters": [
+      {
+        "id": "C1",
+        "meaningful": false,
+        "cause": "LITHO 공정 heartbeat 끊김과 서버 접속 거부가 C4와 같은 사건을 다른 각도로 잡은 것이다. 공유 속성은 공정뿐이라 원인을 설명하지 못하므로 C4에 대표를 맡긴다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C2",
+        "meaningful": false,
+        "cause": "클라이언트 2.3.1 버전을 공유하지만 라이선스 오류 4대(C7)와 서버 접속 거부 2대(C4 계열)가 섞여 있어 같은 원인으로 묶이지 않는다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C3",
+        "meaningful": false,
+        "cause": "LITHO LT-700 서버 접속 거부 묶음으로 C4와 같은 사건을 다른 각도로 잡은 것이다. 원인을 가장 잘 설명하는 C4를 대표로 둔다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C4",
+        "meaningful": true,
+        "cause": "사내망 IP 10.23.1.69를 공유하는 LT-700 6대가 같은 시간대에 신호가 끊기고 서버 접속이 거부되어, 같은 프록시 경로의 장애로 추정된다. 같은 그룹의 PC-D0160은 오류 없이 신호만 끊겨 프록시 PC로 판단한다.",
+        "proxy_pc": "PC-D0160"
+      },
+      {
+        "id": "C5",
+        "meaningful": false,
+        "cause": "C4와 같은 사내망 IP 그룹의 서버 접속 거부를 메시지 패턴으로 잡은 것으로 C4와 같은 사건이다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C6",
+        "meaningful": false,
+        "cause": "C4와 같은 사내망 IP 그룹의 오류를 유형으로만 묶은 것으로 C4와 같은 사건이다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C7",
+        "meaningful": true,
+        "cause": "클라이언트 2.3.1 버전에서 ETCH, DEPO, TEST 공정 4대가 같은 시간대에 라이선스 확인 시간 초과를 겪어 해당 버전의 라이선스 연동 문제로 추정된다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C8",
+        "meaningful": false,
+        "cause": "버전 2.4.0만 공유하고 인증서 만료, 서버 접속 거부, 메모리 부족, 라이선스 지연이 섞여 있어 우연히 모인 것이다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C9",
+        "meaningful": false,
+        "cause": "TEST 공정 2.4.2 버전 3대의 오류가 heartbeat 전송 실패, 메모리 부족, 포트 충돌로 서로 달라 같은 원인이 아니다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C10",
+        "meaningful": false,
+        "cause": "버전 2.4.0에서 heartbeat 끊김이 나지만 서로 다른 공정과 다른 오류가 섞여 있어 우연으로 본다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C11",
+        "meaningful": false,
+        "cause": "LITHO 2.4.2 heartbeat 끊김으로 C4와 같은 사건의 일부다. 원인을 가장 잘 설명하는 C4를 대표로 둔다.",
+        "proxy_pc": ""
+      },
+      {
+        "id": "C12",
+        "meaningful": false,
+        "cause": "LITHO 2.3.1 heartbeat 끊김으로 C4와 같은 사건의 일부다. 원인을 가장 잘 설명하는 C4를 대표로 둔다.",
+        "proxy_pc": ""
+      }
+    ],
+    "summary": "등록 300대 중 정상 260대이며 정상 비율은 86.7%이고, 이상 PC는 40대로 전일 9대에서 늘었다. 가장 중요한 묶음은 사내망 IP 10.23.1.69를 공유하는 LITHO 6대의 프록시 장애 의심이며, PC-D0160은 오류 없이 신호만 끊겨 프록시 PC 후보로 보인다. 클라이언트 2.3.1 버전의 라이선스 응답 지연 4대도 별도의 묶음으로 확인이 필요하다. 식별 실패 4건과 확인 필요 8대가 남아 있고, 신규 38대, 지속 2대, 해소 7대다. SSL 인증서 만료와 디스크 부족 메시지는 패턴표에 없어 새 원인으로 확인이 필요하다."
+  },
+  "issues": [],
+  "ungrounded_numbers": [],
+  "summary_guard": {
+    "first_ungrounded": [],
+    "regenerated": false,
+    "dropped_sentences": []
+  },
+  "message_classes": [
+    {
+      "message": "Connection refused: connect",
+      "pcs": [
+        "PC-D0121"
+      ],
+      "matched_pattern": "connection refused",
+      "reason": "서버 접속 거부라는 같은 원인이며 대소문자와 표기만 다르다."
+    },
+    {
+      "message": "OutOfMemoryError: Java heap space",
+      "pcs": [
+        "PC-D0159"
+      ],
+      "matched_pattern": "java.lang.OutOfMemoryError",
+      "reason": "java.lang 접두어만 빠졌을 뿐 JVM 힙 메모리 부족이라는 같은 원인이다."
+    },
+    {
+      "message": "SSL handshake failed: certificate expired",
+      "pcs": [
+        "PC-B0153"
+      ],
+      "matched_pattern": "NEW",
+      "reason": "인증서 만료는 패턴표의 어떤 원인과도 같지 않다."
+    },
+    {
+      "message": "disk full: cannot write spool file",
+      "pcs": [
+        "PC-A0152"
+      ],
+      "matched_pattern": "NEW",
+      "reason": "디스크 부족은 패턴표의 어떤 원인과도 같지 않다."
+    },
+    {
+      "message": "failed to parse config: retry_count=abc",
+      "pcs": [
+        "PC-C0159"
+      ],
+      "matched_pattern": "config parse failed",
+      "reason": "설정 값 파싱 실패라는 같은 원인이다."
+    },
+    {
+      "message": "license server timeout (30000ms)",
+      "pcs": [
+        "PC-D0109"
+      ],
+      "matched_pattern": "license check timeout",
+      "reason": "라이선스 서버 응답 지연이라는 같은 원인이며 단위 표기만 다르다."
+    }
+  ],
+  "clusters": [
+    {
+      "id": "C1",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-D0113",
+        "PC-D0116",
+        "PC-D0122",
+        "PC-D0131",
+        "PC-D0136",
+        "PC-D0141",
+        "PC-D0160"
+      ],
+      "shared": {
+        "process": "LITHO"
+      },
+      "meaningful": false,
+      "cause": "LITHO 공정 heartbeat 끊김과 서버 접속 거부가 C4와 같은 사건을 다른 각도로 잡은 것이다. 공유 속성은 공정뿐이라 원인을 설명하지 못하므로 C4에 대표를 맡긴다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C2",
+      "signal": "type:error",
+      "pcs": [
+        "PC-A0118",
+        "PC-A0140",
+        "PC-C0149",
+        "PC-D0122",
+        "PC-D0136",
+        "PC-E0153"
+      ],
+      "shared": {
+        "client_version": "2.3.1"
+      },
+      "meaningful": false,
+      "cause": "클라이언트 2.3.1 버전을 공유하지만 라이선스 오류 4대(C7)와 서버 접속 거부 2대(C4 계열)가 섞여 있어 같은 원인으로 묶이지 않는다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C3",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0113",
+        "PC-D0116",
+        "PC-D0122",
+        "PC-D0136",
+        "PC-D0141",
+        "PC-D0159"
+      ],
+      "shared": {
+        "process": "LITHO",
+        "equipment_model": "LT-700",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": false,
+      "cause": "LITHO LT-700 서버 접속 거부 묶음으로 C4와 같은 사건을 다른 각도로 잡은 것이다. 원인을 가장 잘 설명하는 C4를 대표로 둔다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C4",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-D0113",
+        "PC-D0116",
+        "PC-D0122",
+        "PC-D0136",
+        "PC-D0141",
+        "PC-D0160"
+      ],
+      "shared": {
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.69",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": true,
+      "cause": "사내망 IP 10.23.1.69를 공유하는 LT-700 6대가 같은 시간대에 신호가 끊기고 서버 접속이 거부되어, 같은 프록시 경로의 장애로 추정된다. 같은 그룹의 PC-D0160은 오류 없이 신호만 끊겨 프록시 PC로 판단한다.",
+      "proxy_pc": "PC-D0160"
+    },
+    {
+      "id": "C5",
+      "signal": "pattern:connection refused",
+      "pcs": [
+        "PC-D0113",
+        "PC-D0116",
+        "PC-D0122",
+        "PC-D0136",
+        "PC-D0141"
+      ],
+      "shared": {
+        "process": "LITHO",
+        "equipment_model": "LT-700",
+        "shared_intranet_ip": "10.23.1.69",
+        "facility_band": "192.168.3.x"
+      },
+      "meaningful": false,
+      "cause": "C4와 같은 사내망 IP 그룹의 서버 접속 거부를 메시지 패턴으로 잡은 것으로 C4와 같은 사건이다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C6",
+      "signal": "type:error",
+      "pcs": [
+        "PC-D0113",
+        "PC-D0116",
+        "PC-D0122",
+        "PC-D0136",
+        "PC-D0141"
+      ],
+      "shared": {
+        "shared_intranet_ip": "10.23.1.69"
+      },
+      "meaningful": false,
+      "cause": "C4와 같은 사내망 IP 그룹의 오류를 유형으로만 묶은 것으로 C4와 같은 사건이다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C7",
+      "signal": "pattern:license check timeout",
+      "pcs": [
+        "PC-A0118",
+        "PC-A0140",
+        "PC-C0149",
+        "PC-E0153"
+      ],
+      "shared": {
+        "client_version": "2.3.1"
+      },
+      "meaningful": true,
+      "cause": "클라이언트 2.3.1 버전에서 ETCH, DEPO, TEST 공정 4대가 같은 시간대에 라이선스 확인 시간 초과를 겪어 해당 버전의 라이선스 연동 문제로 추정된다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C8",
+      "signal": "type:error",
+      "pcs": [
+        "PC-B0153",
+        "PC-D0113",
+        "PC-D0159",
+        "PC-E0140"
+      ],
+      "shared": {
+        "client_version": "2.4.0"
+      },
+      "meaningful": false,
+      "cause": "버전 2.4.0만 공유하고 인증서 만료, 서버 접속 거부, 메모리 부족, 라이선스 지연이 섞여 있어 우연히 모인 것이다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C9",
+      "signal": "type:error",
+      "pcs": [
+        "PC-E0124",
+        "PC-E0130",
+        "PC-E0133"
+      ],
+      "shared": {
+        "process": "TEST",
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "TEST 공정 2.4.2 버전 3대의 오류가 heartbeat 전송 실패, 메모리 부족, 포트 충돌로 서로 달라 같은 원인이 아니다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C10",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-D0113",
+        "PC-E0119",
+        "PC-E0140"
+      ],
+      "shared": {
+        "client_version": "2.4.0"
+      },
+      "meaningful": false,
+      "cause": "버전 2.4.0에서 heartbeat 끊김이 나지만 서로 다른 공정과 다른 오류가 섞여 있어 우연으로 본다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C11",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-D0116",
+        "PC-D0131",
+        "PC-D0141"
+      ],
+      "shared": {
+        "client_version": "2.4.2"
+      },
+      "meaningful": false,
+      "cause": "LITHO 2.4.2 heartbeat 끊김으로 C4와 같은 사건의 일부다. 원인을 가장 잘 설명하는 C4를 대표로 둔다.",
+      "proxy_pc": ""
+    },
+    {
+      "id": "C12",
+      "signal": "type:heartbeat_gap",
+      "pcs": [
+        "PC-D0122",
+        "PC-D0136",
+        "PC-D0160"
+      ],
+      "shared": {
+        "client_version": "2.3.1"
+      },
+      "meaningful": false,
+      "cause": "LITHO 2.3.1 heartbeat 끊김으로 C4와 같은 사건의 일부다. 원인을 가장 잘 설명하는 C4를 대표로 둔다.",
+      "proxy_pc": ""
+    }
+  ],
+  "publish": null
+}

@@ -1,0 +1,636 @@
+{
+  "label": "v2_guard",
+  "runs": 3,
+  "report_dates": [
+    "2026-11-21",
+    "2026-11-22",
+    "2026-11-23",
+    "2026-11-24",
+    "2026-11-25"
+  ],
+  "baseline": {
+    "anomaly_precision_min": 1.0,
+    "anomaly_recall_min": 1.0,
+    "trap_false_positives": 0,
+    "identify_fail_reason_accuracy_min": 1.0
+  },
+  "llm_mean": {
+    "message_class_accuracy": 1.0,
+    "true_cluster_recall": 1.0,
+    "coincidental_flagged": 0.0,
+    "cluster_false_positives": 0.0,
+    "proxy_pc_accuracy": 1.0,
+    "proxy_pc_wrongly_named": 0.0,
+    "cause_match_rate": 1.0,
+    "ungrounded_numbers": 0.0,
+    "ungrounded_first_draft": 0.0,
+    "summary_regenerated": 0.0,
+    "sentences_dropped": 0.0,
+    "judgement_issues": 0.0
+  },
+  "per_run": [
+    {
+      "aggregate": {
+        "baseline": {
+          "anomaly_precision_min": 1.0,
+          "anomaly_recall_min": 1.0,
+          "trap_false_positives": 0,
+          "identify_fail_reason_accuracy_min": 1.0
+        },
+        "llm": {
+          "message_class_accuracy": 1.0,
+          "true_cluster_recall": 1.0,
+          "coincidental_flagged": 0,
+          "cluster_false_positives": 0,
+          "proxy_pc_accuracy": 1.0,
+          "proxy_pc_wrongly_named": 0,
+          "cause_match_rate": 1.0,
+          "ungrounded_numbers": 0,
+          "ungrounded_first_draft": 0,
+          "summary_regenerated": 0,
+          "sentences_dropped": 0,
+          "judgement_issues": 0
+        }
+      },
+      "days": [
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 0,
+            "true_clusters_detected": 0,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 0,
+            "proxy_pc_correct": 0,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 6,
+            "message_classes_correct": 6,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-21",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 4443,
+            "output_tokens": 1915
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-21_20261127_085846_800537.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 1,
+            "true_clusters_detected": 1,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 0,
+            "proxy_pc_correct": 0,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 0,
+            "message_classes_correct": 0,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-22",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 7306,
+            "output_tokens": 3194
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-22_20261127_085906_499263.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 1,
+            "true_clusters_detected": 1,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 1,
+            "proxy_pc_correct": 1,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 0,
+            "message_classes_correct": 0,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-23",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 39203,
+            "output_tokens": 3067
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-23_20261127_085925_430689.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 1,
+            "true_clusters_detected": 1,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 0,
+            "proxy_pc_correct": 0,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 0,
+            "message_classes_correct": 0,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-24",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 5030,
+            "output_tokens": 1253
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-24_20261127_085933_692076.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 2,
+            "true_clusters_detected": 2,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 1,
+            "proxy_pc_correct": 1,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 6,
+            "message_classes_correct": 6,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-25",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 11926,
+            "output_tokens": 5510
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-25_20261127_085959_438999.json"
+        }
+      ]
+    },
+    {
+      "aggregate": {
+        "baseline": {
+          "anomaly_precision_min": 1.0,
+          "anomaly_recall_min": 1.0,
+          "trap_false_positives": 0,
+          "identify_fail_reason_accuracy_min": 1.0
+        },
+        "llm": {
+          "message_class_accuracy": 1.0,
+          "true_cluster_recall": 1.0,
+          "coincidental_flagged": 0,
+          "cluster_false_positives": 0,
+          "proxy_pc_accuracy": 1.0,
+          "proxy_pc_wrongly_named": 0,
+          "cause_match_rate": 1.0,
+          "ungrounded_numbers": 0,
+          "ungrounded_first_draft": 0,
+          "summary_regenerated": 0,
+          "sentences_dropped": 0,
+          "judgement_issues": 0
+        }
+      },
+      "days": [
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 0,
+            "true_clusters_detected": 0,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 0,
+            "proxy_pc_correct": 0,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 6,
+            "message_classes_correct": 6,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-21",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 4443,
+            "output_tokens": 2282
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-21_20261127_090011_085371.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 1,
+            "true_clusters_detected": 1,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 0,
+            "proxy_pc_correct": 0,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 0,
+            "message_classes_correct": 0,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-22",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 7306,
+            "output_tokens": 3105
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-22_20261127_090026_916576.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 1,
+            "true_clusters_detected": 1,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 1,
+            "proxy_pc_correct": 1,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 0,
+            "message_classes_correct": 0,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-23",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 39203,
+            "output_tokens": 4680
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-23_20261127_090048_505643.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 1,
+            "true_clusters_detected": 1,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 0,
+            "proxy_pc_correct": 0,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 0,
+            "message_classes_correct": 0,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-24",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 5030,
+            "output_tokens": 1105
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-24_20261127_090056_555589.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 2,
+            "true_clusters_detected": 2,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 1,
+            "proxy_pc_correct": 1,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 6,
+            "message_classes_correct": 6,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-25",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 11926,
+            "output_tokens": 6575
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-25_20261127_090126_947823.json"
+        }
+      ]
+    },
+    {
+      "aggregate": {
+        "baseline": {
+          "anomaly_precision_min": 1.0,
+          "anomaly_recall_min": 1.0,
+          "trap_false_positives": 0,
+          "identify_fail_reason_accuracy_min": 1.0
+        },
+        "llm": {
+          "message_class_accuracy": 1.0,
+          "true_cluster_recall": 1.0,
+          "coincidental_flagged": 0,
+          "cluster_false_positives": 0,
+          "proxy_pc_accuracy": 1.0,
+          "proxy_pc_wrongly_named": 0,
+          "cause_match_rate": 1.0,
+          "ungrounded_numbers": 0,
+          "ungrounded_first_draft": 0,
+          "summary_regenerated": 0,
+          "sentences_dropped": 0,
+          "judgement_issues": 0
+        }
+      },
+      "days": [
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 0,
+            "true_clusters_detected": 0,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 0,
+            "proxy_pc_correct": 0,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 6,
+            "message_classes_correct": 6,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-21",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 4443,
+            "output_tokens": 2430
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-21_20261127_090139_096580.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 1,
+            "true_clusters_detected": 1,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 0,
+            "proxy_pc_correct": 0,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 0,
+            "message_classes_correct": 0,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-22",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 7306,
+            "output_tokens": 3155
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-22_20261127_090154_409053.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 1,
+            "true_clusters_detected": 1,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 1,
+            "proxy_pc_correct": 1,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 0,
+            "message_classes_correct": 0,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-23",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 39203,
+            "output_tokens": 4003
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-23_20261127_090213_563591.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 1,
+            "true_clusters_detected": 1,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 0,
+            "proxy_pc_correct": 0,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 0,
+            "message_classes_correct": 0,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-24",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 5030,
+            "output_tokens": 1495
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-24_20261127_090222_194818.json"
+        },
+        {
+          "baseline": {
+            "anomaly_precision": 1.0,
+            "anomaly_recall": 1.0,
+            "trap_false_positives": 0,
+            "identify_fail_reason_accuracy": 1.0,
+            "identify_fail_extra": 0,
+            "registered_matches": true
+          },
+          "llm": {
+            "message_class_accuracy": 1.0,
+            "true_clusters": 2,
+            "true_clusters_detected": 2,
+            "coincidental_flagged": 0,
+            "cluster_false_positives": 0,
+            "proxy_clusters": 1,
+            "proxy_pc_correct": 1,
+            "proxy_pc_wrongly_named": 0,
+            "message_classes": 6,
+            "message_classes_correct": 6,
+            "cause_match_rate": 1.0,
+            "ungrounded_numbers": 0,
+            "ungrounded_first_draft": 0,
+            "summary_regenerated": 0,
+            "sentences_dropped": 0,
+            "judgement_issues": 0
+          },
+          "date": "2026-11-25",
+          "usage": {
+            "model": "claude-haiku-5-5",
+            "input_tokens": 11926,
+            "output_tokens": 5549
+          },
+          "record": "C:\\Users\\User\\Documents\\ABZ_캡스톤\\abz-capstone\\기록\\평가\\runs\\daily_report_2026-11-25_20261127_090246_185906.json"
+        }
+      ]
+    }
+  ]
+}
