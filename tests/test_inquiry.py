@@ -172,9 +172,10 @@ def _ideal_evidence(world, hidden, pcs):
 
 
 def test_source_evidence_reaches_ideal_answers(base, world):
-    """개선 단계 문의(#21~26): 소스 근거를 주면 표기 변형은 조치함, 신규 원인은 조건 미충족(정답)과 같아야 한다."""
+    """개선 단계 문의(#21~27): 소스 근거를 주면 표기 변형은 조치함, 신규 원인은 조건 미충족(정답)과 같아야 한다.
+    #27(프록시를 거치는 PC의 표현만 다른 접속 오류)은 2차 개선부터 맞는다."""
     hidden = base["hidden"]["pcs"]
-    for p in base["posts"][20:26]:
+    for p in base["posts"][20:27]:
         pid = p["post_id"]
         board.create_post(world, p["author"], p["title"], p["pc_field"], p["body"], p["created_at"], post_id=pid)
         parsed = parse_pc_field(p["pc_field"], p["body"])
@@ -268,13 +269,48 @@ def test_wrapped_new_cause_evidence_passes_in_v1(base, world):
     assert plan["source_evidence"]["ok"] and plan["eligible"]
 
 
-def test_proxy_variant_handed_over_in_v1(base, world):
-    """문제 A(1차 개선 기준): 프록시를 거치는 PC의 표현만 다른 접속 오류는 소스 근거가 확인돼도 운영자에게 넘긴다."""
+def test_proxy_variant_gets_proxy_judgement(base, world):
+    """2차 개선(문제 A): 프록시를 거치는 PC의 표현만 다른 접속 오류도 근거가 확인되면 표준 메시지와 같은 프록시 판단을 받는다.
+    근거가 없으면 지금처럼 조건 미충족이다."""
     a = base["hidden"]["scenarios"]["op_variant_proxy"][0]
     pid = add(world, a)
+    assert not T.diagnose_targets(world, pid)["plans"][0]["eligible"]
     loc = _ideal_evidence(world, base["hidden"]["pcs"], [a])[0]["location"]
-    plan = T.diagnose_targets(world, pid, error_evidence=[{"pc_id": a, "location": loc}])["plans"][0]
-    assert plan["source_evidence"]["ok"] and not plan["eligible"]
+    d = T.diagnose_targets(world, pid, error_evidence=[{"pc_id": a, "location": loc}])
+    plan = d["plans"][0]
+    assert plan["source_evidence"]["ok"] and plan["eligible"]
+    assert plan["action"]["type"] == "jvm_proxy" and plan["action"]["value"] == base["hidden"]["pcs"][a]["expected_proxy"]
+    assert d["write_tools_needed_in_order"] == ["update_jvm_proxy", "restart_client_service"]
+
+
+def _stop_peer(world, pc, since, message):
+    vpc.write_service(world, pc, "stopped", since)
+    vpc.append_log(world, pc, [(datetime.strptime(since, vpc.TS), "ERROR", message)])
+
+
+def test_simultaneous_check_counts_variant_peers(base, world):
+    """2차 개선(문제 A): 동료 PC가 표현만 다른 접속 오류로 30분 안에 멈췄으면, 그 PC에 근거가 없어도 코드가 소스 리터럴과
+    ErrorKind 대응을 직접 확인해 동시 장애로 센다. 접속 오류가 아닌 메시지(연결 끊김 등)는 세지 않는다."""
+    a = base["hidden"]["scenarios"]["op_variant_proxy"][0]
+    ctx = inquiry.Context(world)
+    peer = next(p for p, r in sorted(ctx.master.items()) if p != a and r["ip"] == ctx.master[a]["ip"] and r["internal_ip"]
+                and ctx.status(p)["status"] == "running")
+    near = (datetime.strptime(ctx.status(a)["since"], vpc.TS).replace(second=0)).strftime(vpc.TS)
+    pid = add(world, a)
+    loc = _ideal_evidence(world, base["hidden"]["pcs"], [a])[0]["location"]
+    ev = [{"pc_id": a, "location": loc}]
+    _stop_peer(world, peer, near, "connection reset by peer")             # 새로운 원인: 세지 않는다
+    assert T.diagnose_targets(world, pid, error_evidence=ev)["plans"][0]["eligible"]
+    _stop_peer(world, peer, near, "Connection refused: connect")          # 표현만 다른 접속 오류: 센다
+    plan = T.diagnose_targets(world, pid, error_evidence=ev)["plans"][0]
+    assert not plan["eligible"] and plan["together"] == sorted([a, peer]) and "장애 의심" in plan["reason"]
+    r = T.update_jvm_proxy(world, pid, error_evidence=ev)
+    assert r["applied"] == 0 and not history.rows(world, pid)
+    # 코드 판정 함수 자체
+    assert inquiry.is_conn_refused(ctx, "Connection refused: connect")
+    assert inquiry.is_conn_refused(ctx, "connection refused: 10.10.0.5:8443")
+    assert not inquiry.is_conn_refused(ctx, "connection reset by peer")
+    assert not inquiry.is_conn_refused(ctx, "Connection refused: something else")
 
 
 def resp(*blocks, stop="tool_use"):

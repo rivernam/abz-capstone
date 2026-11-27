@@ -51,6 +51,33 @@ def kind_map(world):
     return out
 
 
+def literal_index(world):
+    """ErrorKind가 있는 줄의 메시지 리터럴 목록 [{literal, kind, pattern, location}]. 고정 문구가 MIN_FIXED_CHARS 미만인 리터럴은 뺀다."""
+    kinds = kind_map(world)
+    out = []
+    for f in _files(world):
+        for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            ks = set(KIND_USE.findall(line))
+            if len(ks) != 1:
+                continue
+            kind = ks.pop()
+            for lit in (_unescape(x) for x in LITERAL.findall(line)):
+                if len(re.sub(r"%[sd]", "", lit)) >= MIN_FIXED_CHARS:
+                    out.append({"literal": lit, "kind": kind, "pattern": (kinds.get(kind) or {}).get("pattern"),
+                                "location": f"{_rel(world, f)}:{i}"})
+    return out
+
+
+def patterns_for_message(world, message, index=None):
+    """메시지 전체와 맞는 리터럴들의 패턴표 대응 집합(대응 없는 ErrorKind는 None). 모델의 근거 없이 코드가 직접 찾는다.
+
+    동료 PC의 동시 장애 판정처럼 "세어서 조치를 멈추는" 쪽에만 쓴다. 조치 대상의 패턴을 정하는 데는 쓰지 않는다
+    (그쪽은 모델이 고른 근거를 verify_evidence로 확인한다)."""
+    msg = message or ""
+    return {x["pattern"] for x in (index if index is not None else literal_index(world))
+            if re.fullmatch(literal_regex(x["literal"]), msg)}
+
+
 def search(world, query):
     q = (query or "").strip()
     if not q:

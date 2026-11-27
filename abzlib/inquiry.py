@@ -30,6 +30,13 @@ class Context:
         self.patterns = load_patterns(world.pattern_table)
         self.defaults = vpc.load_defaults(world)
         self._svc = {}
+        self._literals = None
+
+    def source_patterns(self, message):
+        """메시지와 맞는 소스 리터럴의 패턴표 대응 집합(abzlib/source.patterns_for_message). 소스 색인은 한 번만 만든다."""
+        if self._literals is None:
+            self._literals = source.literal_index(self.world)
+        return source.patterns_for_message(self.world, message, self._literals)
 
     def status(self, pc):
         if pc not in self._svc:
@@ -86,8 +93,17 @@ def _since(svc):
         return None
 
 
+def is_conn_refused(ctx, message):
+    """connection refused 계열 오류인지. 패턴표 문구로 시작하거나, 표현만 다른 메시지라도 소스에서 메시지 전체와 맞는
+    리터럴의 ErrorKind가 connection refused에 대응하면 그렇다고 본다(코드가 직접 확인, 모델 근거 없음)."""
+    if not message:
+        return False
+    return message.startswith("connection refused") or "connection refused" in ctx.source_patterns(message)
+
+
 def group_conn_refused(ctx, pc):
-    """같은 사내망 IP 그룹에서 connection refused로 비슷한 시각(30분 안)에 멈춘 설비망 PC 목록(대상 포함)."""
+    """같은 사내망 IP 그룹에서 connection refused로 비슷한 시각(30분 안)에 멈춘 설비망 PC 목록(대상 포함).
+    표현만 다른 접속 오류 메시지(예: "Connection refused: connect")로 멈춘 PC도 센다(is_conn_refused)."""
     w, m = ctx.world, ctx.master
     rec = m[pc]
     t0 = _since(ctx.status(pc))
@@ -98,7 +114,7 @@ def group_conn_refused(ctx, pc):
         svc = ctx.status(p)
         t = _since(svc)
         err = vpc.last_error(w, p) if svc["status"] == "stopped" else None
-        if err and err.startswith("connection refused") and t and t0 and abs(t - t0) <= SIMULTANEOUS:
+        if err and is_conn_refused(ctx, err) and t and t0 and abs(t - t0) <= SIMULTANEOUS:
             out.append(p)
     return out
 
@@ -157,10 +173,7 @@ def plan_pc(ctx, pc, evidence=None):
         if not v["ok"]:
             return {**r, "category": NOT_MET, "reason": f"오류 메시지가 패턴표에 없고 소스 근거가 확인되지 않아 자동 조치하지 않는다({v['reason']})"}
         pat, src = v["pattern"], v
-        if pat["auto_action"] == "proxy_check_restart" and rec["internal_ip"]:
-            # 프록시 판단(동시 장애, 프록시 값)은 패턴표 표준 메시지를 전제로 하므로, 설비망 PC의 표기 변형은 넘긴다.
-            return {**r, "pattern": pat["message_pattern"], "category": NOT_MET,
-                    "reason": "소스 근거로 패턴은 확인했지만 프록시를 거치는 PC의 표기 변형 메시지라 프록시 판단을 하지 않고 운영자에게 넘긴다."}
+        # 2차 개선: 프록시를 거치는 PC라도 근거가 확인되면 표준 메시지와 같은 프록시 판단(동시 장애 확인, ADR 0004)을 받는다.
     r.update({"pattern": pat["message_pattern"], "cause": pat["cause"], "recommended_action": pat["recommended_action"],
               "auto_action": pat["auto_action"]})
     aa = pat["auto_action"]
