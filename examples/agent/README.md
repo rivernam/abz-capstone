@@ -209,7 +209,7 @@ for inquiry in INQUIRIES:
 - **스킬이 수십 개여도 평소 프롬프트는 짧다.** 늘어나는 것은 스킬 하나당 한 줄이다.
 - **머리말은 `키: 값` 줄만 읽는다.** 샘플을 단순하게 하려는 것이고, 실제 스킬 머리말은 YAML이다.
 
-#### 실제 호출 결과
+#### Skills 실제 호출 결과
 
 `skills.py`와 `Skills.java`의 `main`은 필요한 스킬이 서로 다른 문의 세 건을 차례로 처리하고, 문의마다 모델이 부른 Tool과 답을 출력한다. 2026-11-27에 Claude API(`claude-opus-5-5`)로 두 언어에서 한 번씩 실행했다. Tool 호출 순서는 두 언어에서 같았다.
 
@@ -487,5 +487,21 @@ reply = complete(SYNTHESIS_SYSTEM, [...])             # 지휘자: 결과를 모
 - **Python**: 시험 42개가 통과한다. 두 에이전트 루프는 가짜 클라이언트로, 운영 요소 네 가지는 가짜 모델 함수로 확인했다. MCP는 주문 서버를 실제 하위 프로세스로 띄워 왕복했다(`mcp` 2.3.0). `service.py`는 그대로 실행했다.
 - **Java**: Maven 3.9.16으로 빌드했고 `SampleTests` 26개가 통과한다. 두 에이전트 루프는 시험 안에서 가짜 API 서버를 띄워, SDK가 실제로 HTTP 요청을 보내고 응답을 읽는 경로로 끝까지 실행했다. MCP는 `McpOrderServer`를 실제 하위 프로세스로 띄워 왕복했다(MCP Java SDK 2.2.0). `AgentService`는 `mvn` 명령 그대로 실행했다.
 - **Java의 JSON 라이브러리**: 샘플 코드는 Jackson 3(3.3.0)을 쓴다. Claude·OpenAI SDK는 내부에서 Jackson 2를 쓰므로 Jackson 2도 클래스 경로에 함께 있다. 두 계열이 같이 쓰는 `jackson-annotations`의 버전은 `pom.xml`의 `jackson-bom`이 맞춘다.
-- **실제 API 호출**: Skills를 Claude API(`claude-opus-5-5`)로 Python과 Java에서 실행했다. `python skills.py`와 `mvn -q compile exec:java "-Dexec.mainClass=Skills"`를 그대로 돌렸고, 결과는 [Skills의 "실제 호출 결과"](#실제-호출-결과)에 있다.
-- **확인하지 않은 것**: 그 밖의 `main`(기본 루프, MCP, 운영 요소)은 실제 API로 실행해 보지 않았다. OpenAI 호환 API로는 한 번도 호출하지 않았다.
+- **실제 API 호출**: 2026-11-27에 API 키가 필요한 `main`을 모두 README의 명령 그대로 한 번씩 실행했고, 12건이 모두 끝까지 돌았다. 모델은 `claude-opus-5-5`다. 결과는 아래 "실제 호출 결과"에 있다.
+- **확인하지 않은 것**: OpenAI 호환 API는 Anthropic이 제공하는 OpenAI 호환 주소로만 호출했다. OpenAI나 vLLM·Ollama 같은 다른 호환 서버로는 호출하지 않았다.
+
+### 실제 호출 결과
+
+| 샘플 | Python | Java | 결과 |
+|---|---|---|---|
+| 기본 루프: Claude API | `claude_agent.py` | `ClaudeOrderAgent` | `get_order` 두 건을 한 번에 요청한 뒤 A-100만 `cancel_order`. A-200은 배송중이라 취소할 수 없다고 안내 |
+| 기본 루프: OpenAI 호환 API | `openai_compat_agent.py` | `OpenAiCompatOrderAgent` | 위와 같은 Tool 호출 순서와 같은 취지의 답 |
+| Skills | `skills.py` | `Skills` | [Skills 실제 호출 결과](#skills-실제-호출-결과) 참고 |
+| MCP | `mcp_tools.py` | `McpTools` | 기본 루프와 같은 Tool 호출 순서. Tool은 하위 프로세스로 뜬 주문 서버에서 실행됐다 |
+| 대화 기록과 장기 메모리 | `memory.py` | `MemoryChat` | 같은 세션에서 이름을 기억했고, 새 세션에서도 이름과 "한 문장으로 답하기" 선호를 말했다 |
+| 추적과 비용 집계 | `tracing.py` | `Tracing` | 모델 호출 2회, 오류 0. Python은 입력 173·출력 324 토큰에 0.0072달러, Java는 입력 168·출력 240 토큰에 0.0055달러 |
+| 여러 에이전트 | `multi_agent.py` | `MultiAgent` | 하위 작업으로 나눠 처리한 뒤 장점·위험·준비 사항을 종합한 답을 냈다. 작업자 결과끼리 어긋난 부분과 검증이 필요한 수치를 답에 따로 밝혔다 |
+
+- **OpenAI 호환 API 설정**: `OPENAI_BASE_URL=https://api.anthropic.com/v1/`, `OPENAI_MODEL=claude-opus-5-5`, `OPENAI_API_KEY`에는 Anthropic API 키를 넣었다. 요청은 `/v1/chat/completions`로 나갔다.
+- **기본 루프에서 본 것**: 모델은 배송중인 A-200에 `cancel_order`를 아예 부르지 않았다. 조회 결과와 Tool 설명("결제완료 상태일 때만 된다")을 보고 판단한 것이다. Tool 안의 안전 검사는 이번 실행에서는 걸리지 않았고, 모델이 잘못 요청했을 때를 위한 장치로 남는다.
+- 샘플마다 한 번씩 돌린 결과다. 모델의 답은 실행할 때마다 문장이 달라진다.
