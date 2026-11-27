@@ -97,13 +97,46 @@ def snapshot(world, pcs):
                  for f in PC_FILES} for pc in pcs}
 
 
-def inquiry_job(jid, pid):
+CUSTOM_IDS = iter(range(1001, 10**6))
+LIMITS = {"author": 30, "title": 100, "pc_field": 300, "body": 2000}
+
+
+def stopped_pcs():
+    """저장소 가상 세계에서 서비스가 멈춘 PC와 마지막 오류(읽기 전용). 직접 문의를 쓸 때 고를 수 있게 보여 준다."""
+    from abzlib import virtual_pc as vpc
+    from abzlib.master import load_master
+    from abzlib.world import World
+    w = World()
+    master = load_master(w.db_path)
+    out = []
+    for d in sorted(w.pc_dir.iterdir()):
+        try:
+            svc = vpc.read_service(w, d.name)
+        except Exception:
+            continue
+        if svc.get("status") == "stopped":
+            rec = master.get(d.name, {})
+            out.append({"pc_id": d.name, "process": rec.get("process", "미등록"), "since": svc.get("since"),
+                        "error": vpc.last_error(w, d.name)})
+    return out
+
+
+def custom_post(body):
+    """화면에서 쓴 문의. 길이만 제한하고 내용은 그대로 둔다(본문 지시를 따르지 않는 것은 에이전트와 Tool의 몫이다)."""
+    p = {k: str(body.get(k, "")).strip()[:n] for k, n in LIMITS.items()}
+    if not p["title"] or not p["pc_field"] or not p["body"]:
+        raise ValueError("제목, 설비 PC ID, 본문을 모두 적어야 한다.")
+    p.update(post_id=next(CUSTOM_IDS), author=p["author"] or "시연 사용자", category="직접 작성",
+             created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    return p
+
+
+def inquiry_job(jid, p):
     from abzlib.targets import parse_pc_field
     from eval.score_inquiries import make_world
     from runner.inquiry_agent import run
     from tools import board
-    posts = {p["post_id"]: p for p in json.loads(paths.INQUIRY_SET.read_text(encoding="utf-8"))["posts"]}
-    p = posts[pid]
+    pid = p["post_id"]
     out = OUT / f"web_inquiry_{jid}"
     world = make_world(paths.ROOT, out)
     board.create_post(world, p["author"], p["title"], p["pc_field"], p["body"], p["created_at"], post_id=pid)
@@ -123,7 +156,7 @@ def inquiry_job(jid, pid):
                 changes.append({"pc": pc, "file": f, "lines": d})
     status = {pc: json.loads(after[pc]["service.json"] or "{}").get("status") for pc in pcs}
     notes = [n["body"] for n in board.list_notes(world, pid)]
-    finish(jid, {"post_id": pid, "status": r["status"], "model_calls": r["model_calls"], "tool_calls": r["tool_calls"],
+    finish(jid, {"post_id": pid, "post": p, "status": r["status"], "model_calls": r["model_calls"], "tool_calls": r["tool_calls"],
                  "changes": changes, "pc_status": status, "notes": notes, "body_only": parsed["body_only"],
                  "over_limit": parsed["over_limit"]})
 
@@ -165,6 +198,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, {"report_dates": ans["report_dates"],
                                    "posts": [{k: p[k] for k in ("post_id", "category", "author", "title", "pc_field", "body", "created_at")}
                                              for p in posts]})
+        if path == "/api/stopped":
+            return self.send(200, {"pcs": stopped_pcs()})
         if path.startswith("/api/job/"):
             job = JOBS.get(path.rsplit("/", 1)[-1])
             return self.send(200, job) if job else self.send(404, {"error": "없는 작업이다."})
@@ -184,11 +219,18 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/report":
             return self.send(200, {"job": start(report_job, str(body.get("date", "2026-11-25")))})
         if self.path == "/api/inquiry":
+            if isinstance(body.get("custom"), dict):
+                try:
+                    p = custom_post(body["custom"])
+                except ValueError as e:
+                    return self.send(400, {"error": str(e)})
+                return self.send(200, {"job": start(inquiry_job, p), "post": p})
+            posts = {p["post_id"]: p for p in json.loads(paths.INQUIRY_SET.read_text(encoding="utf-8"))["posts"]}
             try:
-                pid = int(body.get("post_id"))
-            except (TypeError, ValueError):
-                return self.send(400, {"error": "post_id가 정수가 아니다."})
-            return self.send(200, {"job": start(inquiry_job, pid)})
+                p = posts[int(body.get("post_id"))]
+            except (TypeError, ValueError, KeyError):
+                return self.send(400, {"error": "시험 세트에 없는 post_id다."})
+            return self.send(200, {"job": start(inquiry_job, p)})
         return self.send(404, {"error": "없는 경로다."})
 
 

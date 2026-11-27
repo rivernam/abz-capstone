@@ -115,6 +115,16 @@ iframe{width:100%;height:720px;border:1px solid var(--line);border-radius:8px;ba
 .call.read{border-left-color:var(--blue)} .call.reply{border-left-color:#6B4FA0}
 .call b{font-size:13px} .call code{font-size:12px}
 .typing{align-self:flex-start;color:var(--steel);font-size:13px;display:flex;gap:8px;align-items:center}
+.compose-btn{display:block;width:calc(100% - 32px);margin:0 16px 10px;padding:9px;font:700 14px var(--sans);color:var(--blue);background:var(--blue-soft);border:1px dashed #9DBDE0;border-radius:6px;cursor:pointer}
+.form label{margin-top:12px}
+.form input,.form textarea{width:100%;font:15px var(--sans);padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.form textarea{min-height:130px;resize:vertical;line-height:1.6}
+.form .hint{font-size:12px;color:var(--steel);margin-top:4px}
+.stopped{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:170px;overflow:auto}
+.stopped button{font:12px var(--sans);text-align:left;border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 8px;cursor:pointer;max-width:100%}
+.stopped button b{font-family:var(--mono);font-size:12px;margin-right:6px}
+.stopped button span{color:var(--steel)}
+.form-err{color:var(--red);font-size:13px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -145,6 +155,7 @@ iframe{width:100%;height:720px;border:1px solid var(--line);border-radius:8px;ba
   <div class="grid">
     <div class="panel" style="padding:0">
       <div style="padding:16px 16px 8px"><h2>게시판 문의</h2><p class="lead" style="margin:0">시험 세트 29건 중 하나를 고르세요.</p></div>
+      <button class="compose-btn" id="compose">새 문의 직접 쓰기</button>
       <ul class="posts" id="posts" role="listbox" aria-label="문의 목록"></ul>
     </div>
     <div>
@@ -311,6 +322,66 @@ function selectPost(p, li) {
   $('#inq-out').replaceChildren();
 }
 
+function showPost(p, btnLabel, onRun) {
+  const btn = el('button', {class: 'run', text: btnLabel});
+  btn.onclick = () => onRun(btn);
+  $('#post-view').replaceChildren(
+    el('div', {class: 'letter'},
+      el('div', {class: 'from', text: (p.post_id ? '#' + p.post_id + ' · ' : '') + p.author + (p.created_at ? ' · ' + p.created_at : '')}),
+      el('h2', {text: p.title}),
+      el('div', {class: 'pcs'}, el('b', {text: '설비 PC ID '}), el('code', {text: p.pc_field})),
+      el('pre', {text: p.body})),
+    btn);
+  return btn;
+}
+
+let STOPPED = null;
+async function compose() {
+  current = null;
+  document.querySelectorAll('.post').forEach(x => x.setAttribute('aria-selected', 'false'));
+  const f = {
+    author: el('input', {id: 'f-author', value: '시연 사용자', maxlength: '30'}),
+    title: el('input', {id: 'f-title', maxlength: '100', placeholder: '예: 클라이언트가 꺼졌습니다'}),
+    pc: el('input', {id: 'f-pc', maxlength: '300', placeholder: '예: PC-A0122 또는 PC-B0120~0126'}),
+    body: el('textarea', {id: 'f-body', maxlength: '2000', placeholder: '증상을 적습니다. 본문에 다른 PC나 지시를 적어도 에이전트는 설비 PC ID 칸의 PC만 처리합니다.'}),
+  };
+  const err = el('div', {class: 'form-err', role: 'alert'});
+  const chips = el('div', {class: 'stopped'}, el('span', {class: 'hint', text: '불러오는 중…'}));
+  const btn = el('button', {class: 'run', text: '등록하고 에이전트로 처리하기'});
+  $('#post-view').replaceChildren(el('div', {class: 'form'},
+    el('h2', {text: '새 문의'}),
+    el('p', {class: 'lead', style: 'margin:0', text: '게시판에 글을 올리듯 씁니다. 처리는 가상 세계 복사본에서 하므로 원본은 바뀌지 않습니다.'}),
+    el('label', {for: 'f-author', text: '작성자'}), f.author,
+    el('label', {for: 'f-title', text: '제목'}), f.title,
+    el('label', {for: 'f-pc', text: '설비 PC ID'}), f.pc,
+    el('div', {class: 'hint', text: '지금 멈춰 있는 PC (눌러서 넣기 · 마지막 오류)'}), chips,
+    el('label', {for: 'f-body', text: '본문'}), f.body,
+    err, btn));
+  $('#inq-out').replaceChildren();
+  f.title.focus();
+  btn.onclick = async () => {
+    err.textContent = '';
+    const custom = {author: f.author.value, title: f.title.value, pc_field: f.pc.value, body: f.body.value};
+    if (!custom.title.trim() || !custom.pc_field.trim() || !custom.body.trim()) { err.textContent = '제목, 설비 PC ID, 본문을 모두 적어 주세요.'; return; }
+    const shown = showPost(Object.assign({post_id: null, created_at: ''}, custom), '처리 중…', () => {});
+    await runInquiry(custom, shown, {custom});
+    shown.textContent = '새 문의 다시 쓰기'; shown.onclick = compose;
+  };
+  if (!STOPPED) STOPPED = (await (await fetch('/api/stopped')).json()).pcs;
+  chips.replaceChildren(...STOPPED.map(s => {
+    const b = el('button', {type: 'button', title: s.error || '오류 없음'}, el('b', {text: s.pc_id}), el('span', {text: (s.error || '오류 기록 없음').slice(0, 48)}));
+    b.onclick = () => {
+      const cur = f.pc.value.split(',').map(x => x.trim()).filter(Boolean);
+      if (!cur.includes(s.pc_id)) cur.push(s.pc_id);
+      f.pc.value = cur.join(', ');
+      if (!f.body.value.trim() && s.error) f.body.value = s.error + ' 오류가 나면서 클라이언트가 멈췄습니다.';
+      if (!f.title.value.trim()) f.title.value = '클라이언트가 멈췄습니다';
+    };
+    return b;
+  }));
+}
+$('#compose').onclick = compose;
+
 function argsText(input) {
   const a = Object.assign({}, input); delete a.post_id;
   if (a.message) a.message = a.message.slice(0, 80) + (a.message.length > 80 ? '…' : '');
@@ -320,13 +391,15 @@ function argsText(input) {
 
 function pretty(s) { try { return JSON.stringify(JSON.parse(s), null, 2); } catch { return s; } }
 
-async function runInquiry(p, btn) {
+async function runInquiry(p, btn, req) {
   btn.disabled = true; btn.textContent = '처리 중…';
   const chat = makeChat('claude-sonnet-5-5');
   $('#inq-out').replaceChildren(el('div', {class: 'panel section'}, el('h3', {text: '모델과 주고받은 내용'}), chat.box));
   try {
-    const {job} = await (await fetch('/api/inquiry', {method: 'POST', body: JSON.stringify({post_id: p.post_id})})).json();
-    const j = await poll(job, evs => evs.forEach(chat.add));
+    const resp = await fetch('/api/inquiry', {method: 'POST', body: JSON.stringify(req || {post_id: p.post_id})});
+    const started = await resp.json();
+    if (!resp.ok) throw new Error(started.error);
+    const j = await poll(started.job, evs => evs.forEach(chat.add));
     chat.done();
     if (j.status === 'error') throw new Error(j.error);
     renderInquiryResult(j.result);
@@ -359,6 +432,7 @@ function renderInquiryResult(r) {
   $('#date').value = META.report_dates[META.report_dates.length - 1];
   renderPosts();
   // #report=작업ID 또는 #inquiry=작업ID: 끝난 작업을 다시 그린다(화면 확인과 발표 백업용).
+  if (location.hash === '#compose') { document.querySelector('nav button[data-view=inquiry]').click(); compose(); }
   const m = location.hash.match(/^#(report|inquiry)=(\w+)$/);
   if (m) {
     const j = await (await fetch('/api/job/' + m[2])).json();
@@ -366,8 +440,8 @@ function renderInquiryResult(r) {
     if (m[1] === 'inquiry' && j.result) {
       document.querySelector('nav button[data-view=inquiry]').click();
       const p = META.posts.find(x => x.post_id === j.result.post_id);
-      const li = [...document.querySelectorAll('.post')][META.posts.indexOf(p)];
-      selectPost(p, li);
+      if (p) selectPost(p, [...document.querySelectorAll('.post')][META.posts.indexOf(p)]);
+      else showPost(j.result.post, '새 문의 다시 쓰기', compose);
       const chat = makeChat('claude-sonnet-5-5'); j.events.forEach(chat.add); chat.done();
       $('#inq-out').replaceChildren(el('div', {class: 'panel section'}, el('h3', {text: '모델과 주고받은 내용'}), chat.box));
       renderInquiryResult(j.result);
