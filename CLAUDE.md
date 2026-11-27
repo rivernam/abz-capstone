@@ -20,3 +20,4 @@
 - 문의 처리: `python -m runner.inquiry_agent --post-id 3 [--root 복사본]` (재료/pc를 바꾼다)
 - 문의 시험 세트 만들기: `python generator/make_inquiries.py`
 - 문의 채점: `python -m eval.score_inquiries --runs 1` (`--scripted`는 LLM 없는 기준선)
+- 시연: `python -m demo.run_demo report --date 2026-11-25`, `python -m demo.run_demo inquiry --posts 3 17 27` (결과는 `시연/`, 원본은 바꾸지 않는다)
