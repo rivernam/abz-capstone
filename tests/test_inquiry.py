@@ -3,6 +3,7 @@
 저장소의 재료/는 쓰지 않는다. tmp 경로에 generate()로 세계를 만들고, 쓰는 시험은 그 복사본을 쓴다.
 """
 import json
+import re
 import shutil
 import sqlite3
 import sys
@@ -173,7 +174,7 @@ def _ideal_evidence(world, hidden, pcs):
 def test_source_evidence_reaches_ideal_answers(base, world):
     """개선 단계 문의(#21~26): 소스 근거를 주면 표기 변형은 조치함, 신규 원인은 조건 미충족(정답)과 같아야 한다."""
     hidden = base["hidden"]["pcs"]
-    for p in base["posts"][20:]:
+    for p in base["posts"][20:26]:
         pid = p["post_id"]
         board.create_post(world, p["author"], p["title"], p["pc_field"], p["body"], p["created_at"], post_id=pid)
         parsed = parse_pc_field(p["pc_field"], p["body"])
@@ -217,6 +218,63 @@ def test_source_evidence_is_checked_by_code(base, world):
                                                                                      {"pc_id": new, "location": reset_line}])["results"]}
     assert r[conn]["result"] == "success" and "skipped" in r[new]
     assert T.execute(world, "find_error_in_source", {"query": "connection"})[0].count("location") <= 10
+
+
+def test_second_supplement_world_and_answers(base):
+    """2차 보강(#27~29): 숨은 원인, PC 폴더, 정답이 서로 맞는지 확인한다(조치 코드와 독립)."""
+    from abzlib import source
+    from abzlib.patterns import match_pattern
+    w = World(base["root"])
+    ctx = inquiry.Context(w)
+    sc, hidden, ans = base["hidden"]["scenarios"], base["hidden"]["pcs"], base["answers"]
+    a, b, c = sc["op_variant_proxy"][0], sc["op_new_cause_wrapped"][0], sc["op_variant_config_nokey"][0]
+    for pc in (a, b, c):
+        assert ctx.status(pc)["status"] == "stopped" and vpc.last_error(w, pc) == hidden[pc]["error_message"], pc
+        assert match_pattern(hidden[pc]["error_message"], ctx.patterns) is None, pc     # 패턴표와 정확히 일치하지 않는다
+    # (a) 프록시를 거치는 PC. 동료 PC의 합의(ADR 0004)로 정답 프록시 값이 나오고, 현재 값은 틀려 있다.
+    assert ctx.master[a]["internal_ip"] and hidden[a]["restart_succeeds_if"] == "jvm_proxy_correct"
+    px = inquiry.compute_proxy(ctx, a)
+    assert px["value"] == hidden[a]["expected_proxy"] and px["peers_running"] >= 3
+    assert vpc.jvm_proxy(vpc.read_jvm(w, a)) != hidden[a]["expected_proxy"]
+    # 같은 사내망 IP 그룹의 다른 정지 PC와 30분 안에 멈추지 않았다(동시 장애로 보이지 않는다).
+    t0 = datetime.strptime(hidden[a]["stopped_at"], vpc.TS)
+    for p, r in ctx.master.items():
+        if p != a and r["ip"] == ctx.master[a]["ip"] and r["internal_ip"] and ctx.status(p)["status"] == "stopped":
+            assert abs(datetime.strptime(ctx.status(p)["since"], vpc.TS) - t0).total_seconds() > 30 * 60, p
+    # (b), (c) 직접 접속 PC. 재시작해도 다시 실패한다.
+    for pc in (b, c):
+        assert not ctx.master[pc]["internal_ip"] and hidden[pc]["restart_succeeds_if"] == "never", pc
+    assert hidden[b]["cause"] == "new_cause" and hidden[c]["cause"] == "variant_config_nokey"
+    # 메시지는 모두 소스의 리터럴로 들어 있다. (b)의 넓은 리터럴 안 값은 패턴표 대응이 없는 오류 종류의 리터럴과 맞는다.
+    lits = [(x, line) for f in w.source_dir.rglob("*.java") for line in f.read_text(encoding="utf-8").splitlines()
+            if "ErrorKind." in line for x in source.LITERAL.findall(line)]
+    for pc in (a, b, c):
+        assert any(re.fullmatch(source.literal_regex(x), hidden[pc]["error_message"]) for x, _ in lits), pc
+    assert any("LICENSE_EXPIRED" in line and re.fullmatch(source.literal_regex(x), "license expired on 2026-11-20")
+               for x, line in lits)
+    # 정답
+    assert {str(n): ans[str(n)]["expected"] for n in (27, 28, 29)} == {
+        "27": {a: inquiry.DONE}, "28": {b: inquiry.NOT_MET}, "29": {c: inquiry.NOT_MET}}
+    assert [ans[str(n)]["reply_type"] for n in (27, 28, 29)] == ["결과 회신", "방법 회신", "방법 회신"]
+
+
+def test_wrapped_new_cause_evidence_passes_in_v1(base, world):
+    """문제 B(1차 개선 기준): 넓은 리터럴 'failed to send heartbeat: %s'는 %s 자리에 새로운 원인이 들어간 메시지도 맞춘다.
+    #28의 PC에 이 줄을 근거로 주면 heartbeat send failed로 판단되어 재시작 대상이 된다(정답은 조건 미충족)."""
+    b = base["hidden"]["scenarios"]["op_new_cause_wrapped"][0]
+    pid = add(world, b)
+    loc = next(h["location"] for h in T.find_error_in_source(world, "failed to send heartbeat")["hits"] if "error_kind" in h)
+    plan = T.diagnose_targets(world, pid, error_evidence=[{"pc_id": b, "location": loc}])["plans"][0]
+    assert plan["source_evidence"]["ok"] and plan["eligible"]
+
+
+def test_proxy_variant_handed_over_in_v1(base, world):
+    """문제 A(1차 개선 기준): 프록시를 거치는 PC의 표현만 다른 접속 오류는 소스 근거가 확인돼도 운영자에게 넘긴다."""
+    a = base["hidden"]["scenarios"]["op_variant_proxy"][0]
+    pid = add(world, a)
+    loc = _ideal_evidence(world, base["hidden"]["pcs"], [a])[0]["location"]
+    plan = T.diagnose_targets(world, pid, error_evidence=[{"pc_id": a, "location": loc}])["plans"][0]
+    assert plan["source_evidence"]["ok"] and not plan["eligible"]
 
 
 def resp(*blocks, stop="tool_use"):

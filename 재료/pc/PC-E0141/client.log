@@ -1,1 +1,4 @@
 2026-11-20 08:00:00 INFO client started version=2.4.0
+2026-11-26 05:38:21 INFO client stopped
+2026-11-26 05:38:51 ERROR config file parse error at line 12
+2026-11-26 05:38:52 INFO client stopped (fatal)

@@ -486,6 +486,57 @@ def generate(root=None):
                   pattern=None, restart_succeeds_if="never")
         sc["op_new_cause"].append(pc)
 
+    # ---- 5-3. 아이템 ② 2차 시험 세트 보강 (11-26 새벽에 멈춤) ----
+    # 5-2와 같은 방식이다: 별도 난수(SEED + 3)를 쓰고, 기존 take()와 5-2가 모두 끝난 뒤의 pool에서 아무 사건도 없는 PC만 고른다.
+    # 숨은 원인과 시나리오 이름은 op_로 시작해 일일 리포트 정답표에 들어가지 않는다.
+    rng3 = random.Random(SEED + 3)
+    quiet3 = [pc for pc in pool if int(pc[4:]) > 125 and pc not in hidden and plans[pc]["cut"] is None
+              and not any(plans[pc][k] for k in ("skip", "extra", "client", "fails"))]
+    rng3.shuffle(quiet3)
+
+    def take3(n, pred=lambda pc: True):
+        out = [pc for pc in quiet3 if pred(pc)][:n]
+        if len(out) < n:
+            raise RuntimeError("2차 보강 시나리오 PC가 모자란다")
+        for pc in out:
+            quiet3.remove(pc)
+            pool.remove(pc)
+        return out
+
+    def at26c():
+        return t(D26, rng3.randint(1, 6), rng3.randint(0, 59), rng3.randint(0, 59))
+
+    def same_proxy(pc):
+        return [p for p, px in proxy_of.items() if px == proxy_of[pc] and p != pc]
+
+    # (a) 프록시를 거치는 PC가 JVM 프록시 인자가 틀려 표현만 다른 메시지("Connection refused: connect")로 멈춤.
+    #     프록시 값을 교정하고 재시작하면 복구된다. 같은 프록시를 쓰는 실행 중 PC가 넉넉한(6대 이상) 그룹에서 고르고,
+    #     그룹의 다른 정지 PC와 40분 넘게 떨어진 시각에 멈춘다(동시 장애로 보이지 않게, 기존 시나리오의 판단도 그대로).
+    pc = take3(1, lambda pc: pc in proxy_of and sum(p not in hidden for p in same_proxy(pc)) >= 6)[0]
+    others = [datetime.strptime(hidden[p]["stopped_at"], "%Y-%m-%d %H:%M:%S") for p in same_proxy(pc)
+              if "stopped_at" in hidden.get(p, {})]
+    for _ in range(100):
+        at = at26c()
+        if all(abs(at - s) > timedelta(minutes=40) for s in others):
+            break
+    else:
+        raise RuntimeError("2차 보강: 그룹의 다른 정지 PC와 떨어진 시각을 찾지 못했다")
+    jvm_override[pc] = f"192.168.{PROCESSES_INDEX[by_pc[pc]['process']]}.251:{PROXY_PORT}"
+    stop_with(pc, at, "variant_proxy_wrong", client_msg="Connection refused: connect", pattern="connection refused",
+              expected_proxy=proxy_value(pc), restart_succeeds_if="jvm_proxy_correct")
+    sc["op_variant_proxy"] = [pc]
+    # (b) 직접 접속 PC: 넓은 리터럴("failed to send heartbeat: %s")의 %s 자리에 새로운 원인(라이선스 만료)이 들어간 메시지.
+    #     서버에 닿은 뒤의 오류라 서버 로그에도 남는다. 재시작해도 다시 실패한다.
+    pc = take3(1, direct)[0]
+    stop_with(pc, at26c(), "new_cause", server_msg="failed to send heartbeat: license expired on 2026-11-20",
+              pattern=None, restart_succeeds_if="never")
+    sc["op_new_cause_wrapped"] = [pc]
+    # (c) 직접 접속 PC: 설정 오류의 표현만 다른 메시지인데 메시지에 키가 없다(고칠 키를 정할 수 없음). 재시작해도 다시 실패한다.
+    pc = take3(1, direct)[0]
+    stop_with(pc, at26c(), "variant_config_nokey", client_msg="config file parse error at line 12",
+              pattern="config parse failed", restart_succeeds_if="never")
+    sc["op_variant_config_nokey"] = [pc]
+
     # ---- 6. 서버 실행 로그 ----
     conn_addr = {pc: real_ip[route[pc]] for pc in by_pc}
     reported_internal = {pc: (by_pc[pc]["phys_internal"] if pc in has_pattern else "-") for pc in by_pc}

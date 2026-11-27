@@ -53,6 +53,15 @@
       "PC-E0126",
       "PC-E0154",
       "PC-E0156"
+    ],
+    "op_variant_proxy": [
+      "PC-D0143"
+    ],
+    "op_new_cause_wrapped": [
+      "PC-C0138"
+    ],
+    "op_variant_config_nokey": [
+      "PC-E0141"
     ]
   },
   "pcs": {
@@ -184,6 +193,13 @@
       "stopped_at": "2026-11-24 23:58:00",
       "restart_succeeds_if": "always"
     },
+    "PC-C0138": {
+      "cause": "new_cause",
+      "stopped_at": "2026-11-26 03:35:51",
+      "error_message": "failed to send heartbeat: license expired on 2026-11-20",
+      "pattern": null,
+      "restart_succeeds_if": "never"
+    },
     "PC-C0141": {
       "cause": "variant_config",
       "stopped_at": "2026-11-26 06:02:57",
@@ -254,6 +270,14 @@
       "expected_proxy": "192.168.3.69:3128",
       "restart_succeeds_if": "never"
     },
+    "PC-D0143": {
+      "cause": "variant_proxy_wrong",
+      "stopped_at": "2026-11-26 01:44:29",
+      "error_message": "Connection refused: connect",
+      "pattern": "connection refused",
+      "expected_proxy": "192.168.3.66:3128",
+      "restart_succeeds_if": "jvm_proxy_correct"
+    },
     "PC-D0158": {
       "cause": "proxy_missing",
       "stopped_at": "2026-11-26 06:03:24",
@@ -277,6 +301,13 @@
       "stopped_at": "2026-11-26 04:11:03",
       "error_message": "connection reset by peer",
       "pattern": null,
+      "restart_succeeds_if": "never"
+    },
+    "PC-E0141": {
+      "cause": "variant_config_nokey",
+      "stopped_at": "2026-11-26 05:38:21",
+      "error_message": "config file parse error at line 12",
+      "pattern": "config parse failed",
       "restart_succeeds_if": "never"
     },
     "PC-E0145": {
