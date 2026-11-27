@@ -98,6 +98,23 @@ iframe{width:100%;height:720px;border:1px solid var(--line);border-radius:8px;ba
 @media (max-width:1100px){.cols{grid-template-columns:1fr}}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--steel);margin:-4px 0 12px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+/* 대화 보기 */
+.chat{display:flex;flex-direction:column;gap:12px}
+.msg{max-width:88%;border-radius:12px;padding:10px 14px;font-size:14px}
+.msg .who{font-size:12px;font-weight:700;color:var(--steel);margin-bottom:4px}
+.msg .who em{font-style:normal;font-weight:400;margin-left:6px}
+.msg.user{align-self:flex-end;background:var(--blue-soft);border:1px solid #C6D9EE}
+.msg.model{align-self:flex-start;background:#fff;border:1px solid var(--line);box-shadow:0 1px 0 var(--line)}
+.msg.tool{align-self:flex-end;background:#F4F6F8;border:1px dashed #C3CDD6}
+.msg.tool.err{background:var(--red-soft);border:1px solid #E7B6B1}
+.msg.sys{align-self:center;max-width:100%;padding:0;font-size:13px}
+.msg pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.6 var(--mono);margin:6px 0 0;max-height:380px;overflow:auto;background:rgba(255,255,255,.6);border-radius:6px;padding:8px}
+.msg .text{white-space:pre-wrap;line-height:1.75}
+.msg .think{color:var(--steel);white-space:pre-wrap;border-left:3px solid var(--line);padding-left:10px;margin:6px 0 0;font-size:13px}
+.call{margin-top:8px;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:6px;padding:6px 10px;background:#FAFCFB}
+.call.read{border-left-color:var(--blue)} .call.reply{border-left-color:#6B4FA0}
+.call b{font-size:13px} .call code{font-size:12px}
+.typing{align-self:flex-start;color:var(--steel);font-size:13px;display:flex;gap:8px;align-items:center}
 </style>
 </head>
 <body>
@@ -168,15 +185,61 @@ async function poll(job, onEvents) {
   }
 }
 
+/* ---------- 대화 보기 ---------- */
+function longText(text, n = 700) {
+  if (text.length <= n) return el('pre', {text});
+  return el('div', {}, el('pre', {text: text.slice(0, n) + ' …'}), el('details', {}, el('summary', {text: '전체 보기 (' + text.length.toLocaleString() + '자)'}), el('pre', {text})));
+}
+function makeChat(modelName) {
+  const box = el('div', {class: 'chat'});
+  const typing = el('div', {class: 'typing'}, el('span', {class: 'spin'}), '모델이 답하는 중');
+  box.append(typing);
+  const add = node => box.insertBefore(node, typing);
+  return {
+    box,
+    done() { typing.remove(); },
+    add(e) {
+      if (e.type === 'system') {
+        add(el('div', {class: 'msg sys'}, el('details', {}, el('summary', {text: '시스템 프롬프트 (CLAUDE.md + Skill, ' + e.text.length.toLocaleString() + '자)'}), el('pre', {text: e.text}))));
+      } else if (e.type === 'user') {
+        add(el('div', {class: 'msg user'}, el('div', {class: 'who', text: '러너 → 모델'}, e.label ? el('em', {text: e.label}) : null), longText(e.text)));
+      } else if (e.type === 'model') {
+        const u = e.usage || {};
+        const m = el('div', {class: 'msg model'}, el('div', {class: 'who', text: '모델' + (u.model ? ' ' + u.model : modelName ? ' ' + modelName : '')},
+          el('em', {text: '호출 ' + e.n + (u.input_tokens != null ? ' · 입력 ' + (u.input_tokens + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0)).toLocaleString()
+            + (u.cache_read_input_tokens ? '(캐시 ' + u.cache_read_input_tokens.toLocaleString() + ')' : '') + ' · 출력 ' + u.output_tokens + ' 토큰' : '')})));
+        for (const b of e.blocks || []) {
+          if (b.type === 'thinking') m.append(el('details', {}, el('summary', {text: '생각 과정'}), el('div', {class: 'think', text: b.text})));
+          else if (b.type === 'text' && b.text.trim()) m.append(el('div', {class: 'text', text: b.text}));
+          else if (b.type === 'tool_use') {
+            const [label, kind] = TOOL[b.name] || [b.name, 'read'];
+            m.append(el('div', {class: 'call ' + kind}, el('b', {text: 'Tool 호출 · ' + label + ' '}), el('code', {text: b.name}),
+              argsText(b.input) ? el('pre', {text: JSON.stringify(Object.fromEntries(Object.entries(b.input).filter(([k]) => k !== 'post_id')), null, 2)}) : null));
+          } else if (b.type === 'json') m.append(el('div', {class: 'text', text: '구조화 출력(JSON)'}), longText(b.text, 1500));
+        }
+        if (!(e.blocks || []).length) m.append(el('div', {class: 'text', text: '(내용 없음)'}));
+        add(m);
+      } else if (e.type === 'tool') {
+        const [label] = TOOL[e.name] || [e.name];
+        add(el('div', {class: 'msg tool' + (e.is_error ? ' err' : '')}, el('div', {class: 'who', text: 'Tool 코드 → 모델'}, el('em', {text: label + (e.is_error ? ' · 거부' : '')})),
+          el('details', e.is_error ? {open: ''} : {}, el('summary', {text: e.is_error ? '거부 사유' : '결과 보기'}), el('pre', {text: pretty(e.result)}))));
+      }
+    },
+  };
+}
+
 /* ---------- 아이템 ① ---------- */
 $('#run-report').onclick = async () => {
   const btn = $('#run-report'); btn.disabled = true; btn.textContent = '만드는 중…';
-  const out = $('#report-out'); out.replaceChildren(el('div', {class: 'panel status'}, el('span', {class: 'spin'}), '서버 로그를 집계하고 LLM에 판단을 요청하는 중입니다.'));
+  const out = $('#report-out');
+  const chat = makeChat('claude-haiku-5-5');
+  out.replaceChildren(el('div', {class: 'panel section'}, el('h3', {text: 'LLM과 주고받은 내용'}), chat.box));
   try {
     const {job} = await (await fetch('/api/report', {method: 'POST', body: JSON.stringify({date: $('#date').value})})).json();
-    const j = await poll(job, () => {});
+    const j = await poll(job, evs => evs.forEach(chat.add));
+    chat.done();
     if (j.status === 'error') throw new Error(j.error);
-    renderReport(j.result);
+    renderReport(j.result, j.events);
   } catch (e) {
     out.replaceChildren(el('div', {class: 'panel'}, el('span', {class: 'tag err', text: '실패'}), ' ' + e.message));
   } finally { btn.disabled = false; btn.textContent = '리포트 만들기'; }
@@ -187,7 +250,7 @@ function step(no, title, desc, body) {
     el('div', {class: 'step-head'}, el('span', {class: 'no', text: no}), el('div', {}, el('h3', {text: title}), el('p', {text: desc}))), body);
 }
 
-function renderReport(r) {
+function renderReport(r, events = []) {
   const t = r.totals, k = $('#kpis'); k.hidden = false;
   const kpi = (v, l) => el('div', {class: 'kpi'}, el('b', {text: v}), el('span', {text: l}));
   k.replaceChildren(kpi(t.registered + '대', '등록 PC'), kpi(t.normal_ratio + '%', '정상 PC 비율'),
@@ -217,6 +280,7 @@ function renderReport(r) {
     step('1', '처음 보는 오류 메시지 분류', '패턴표와 표현이 다른 메시지를 패턴표 항목에 맞추거나 새 오류 유형으로 둡니다.', mt),
     step('2', '공통 원인 판정', '코드가 조건으로 추린 후보 ' + r.clusters.length + '개를 LLM이 하나씩 판정합니다.', cl),
     step('3', '요약', '숫자는 입력에 있는 값만 씁니다. 발행 전에 코드가 한 번 더 검사합니다.', sm),
+    el('div', {class: 'panel section'}, el('h3', {text: 'LLM과 주고받은 내용'}), (() => { const c = makeChat('claude-haiku-5-5'); events.forEach(c.add); c.done(); return c.box; })()),
     el('div', {class: 'panel section'}, el('h3', {text: '발행된 리포트'}), el('iframe', {src: r.report_url, title: '발행된 일일 리포트'})));
 }
 
@@ -258,34 +322,16 @@ function pretty(s) { try { return JSON.stringify(JSON.parse(s), null, 2); } catc
 
 async function runInquiry(p, btn) {
   btn.disabled = true; btn.textContent = '처리 중…';
-  const rail = el('ol', {class: 'rail'});
-  const pending = el('li', {}, el('span', {class: 'lamp on'}), el('div', {class: 'name', text: '모델이 다음 행동을 고르는 중'}));
-  rail.append(pending);
-  const legend = el('div', {class: 'legend'},
-    el('span', {}, el('i', {style: 'background:var(--blue)'}), '읽기'), el('span', {}, el('i', {style: 'background:var(--green)'}), 'PC 조치'),
-    el('span', {}, el('i', {style: 'background:#6B4FA0'}), '회신'), el('span', {}, el('i', {style: 'background:var(--red)'}), 'Tool이 거부'));
-  const trace = el('div', {class: 'panel section'}, el('h3', {text: '에이전트가 고른 Tool'}), legend, rail);
-  $('#inq-out').replaceChildren(trace);
-  let models = 0;
+  const chat = makeChat('claude-sonnet-5-5');
+  $('#inq-out').replaceChildren(el('div', {class: 'panel section'}, el('h3', {text: '모델과 주고받은 내용'}), chat.box));
   try {
     const {job} = await (await fetch('/api/inquiry', {method: 'POST', body: JSON.stringify({post_id: p.post_id})})).json();
-    const j = await poll(job, evs => {
-      for (const e of evs) {
-        if (e.type === 'model') { models = e.n; pending.querySelector('.name').textContent = '모델 호출 ' + models + '회 · 다음 행동을 고르는 중'; continue; }
-        if (e.type !== 'tool') continue;
-        const [label, kind] = TOOL[e.name] || [e.name, 'read'];
-        const li = el('li', {}, el('span', {class: 'lamp ' + (e.is_error ? 'err' : kind)}),
-          el('div', {}, el('span', {class: 'name', text: label}), el('span', {class: 'fn', text: e.name})),
-          argsText(e.input) ? el('div', {class: 'args', text: argsText(e.input)}) : null,
-          el('details', {}, el('summary', {text: e.is_error ? 'Tool이 거부한 이유' : 'Tool 결과'}), el('pre', {text: pretty(e.result)})));
-        rail.insertBefore(li, pending);
-      }
-    });
-    pending.remove();
+    const j = await poll(job, evs => evs.forEach(chat.add));
+    chat.done();
     if (j.status === 'error') throw new Error(j.error);
     renderInquiryResult(j.result);
   } catch (e) {
-    pending.remove();
+    chat.done();
     $('#inq-out').append(el('div', {class: 'panel'}, el('span', {class: 'tag err', text: '실패'}), ' ' + e.message));
   } finally { btn.disabled = false; btn.textContent = '같은 문의 다시 처리하기'; }
 }
@@ -316,21 +362,14 @@ function renderInquiryResult(r) {
   const m = location.hash.match(/^#(report|inquiry)=(\w+)$/);
   if (m) {
     const j = await (await fetch('/api/job/' + m[2])).json();
-    if (m[1] === 'report' && j.result) { $('#date').value = j.result.date; renderReport(j.result); }
+    if (m[1] === 'report' && j.result) { $('#date').value = j.result.date; renderReport(j.result, j.events); }
     if (m[1] === 'inquiry' && j.result) {
       document.querySelector('nav button[data-view=inquiry]').click();
       const p = META.posts.find(x => x.post_id === j.result.post_id);
       const li = [...document.querySelectorAll('.post')][META.posts.indexOf(p)];
       selectPost(p, li);
-      const rail = el('ol', {class: 'rail'});
-      for (const e of j.events.filter(e => e.type === 'tool')) {
-        const [label, kind] = TOOL[e.name] || [e.name, 'read'];
-        rail.append(el('li', {}, el('span', {class: 'lamp ' + (e.is_error ? 'err' : kind)}),
-          el('div', {}, el('span', {class: 'name', text: label}), el('span', {class: 'fn', text: e.name})),
-          argsText(e.input) ? el('div', {class: 'args', text: argsText(e.input)}) : null,
-          el('details', {}, el('summary', {text: e.is_error ? 'Tool이 거부한 이유' : 'Tool 결과'}), el('pre', {text: pretty(e.result)}))));
-      }
-      $('#inq-out').replaceChildren(el('div', {class: 'panel section'}, el('h3', {text: '에이전트가 고른 Tool'}), rail));
+      const chat = makeChat('claude-sonnet-5-5'); j.events.forEach(chat.add); chat.done();
+      $('#inq-out').replaceChildren(el('div', {class: 'panel section'}, el('h3', {text: '모델과 주고받은 내용'}), chat.box));
       renderInquiryResult(j.result);
     }
   }

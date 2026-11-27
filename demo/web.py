@@ -46,11 +46,34 @@ def finish(jid, result=None, error=None):
         JOBS[jid].update(status="error" if error else "done", result=result, error=error)
 
 
+class RecordingLLM:
+    """ClaudeJSON을 감싸 요청과 응답을 대화 이벤트로 남긴다."""
+
+    def __init__(self, jid):
+        from runner.llm import ClaudeJSON
+        self.inner, self.jid, self.n, self.system_sent = ClaudeJSON(), jid, 0, False
+
+    def call(self, system, user, schema):
+        if not self.system_sent:
+            push(self.jid, {"type": "system", "text": system})
+            self.system_sent = True
+        try:
+            pretty = json.dumps(json.loads(user), ensure_ascii=False, indent=2)
+        except ValueError:
+            pretty = user
+        kind = "요약 다시 쓰기 요청(발행 전 검사)" if set(schema.get("properties", {})) == {"summary"} else "판단 요청"
+        push(self.jid, {"type": "user", "text": pretty, "label": kind})
+        out, usage = self.inner.call(system, user, schema)
+        self.n += 1
+        push(self.jid, {"type": "model", "n": self.n, "blocks": [{"type": "json", "text": json.dumps(out, ensure_ascii=False, indent=2)}],
+                        "usage": usage})
+        return out, usage
+
+
 def report_job(jid, day):
     from runner.daily_report import run
     out = OUT / f"web_report_{jid}"
-    push(jid, {"type": "stage", "text": "서버 로그를 집계하고 LLM에 판단을 요청하는 중"})
-    r = run(day, publish=True, storage_dir=out / "storage", outbox=out / "outbox.jsonl", runs_dir=out / "runs")
+    r = run(day, llm=RecordingLLM(jid), publish=True, storage_dir=out / "storage", outbox=out / "outbox.jsonl", runs_dir=out / "runs")
     if r.get("is_error"):
         return finish(jid, error=r.get("error"))
     s, rec = r["summary"], r["record"]
@@ -87,6 +110,8 @@ def inquiry_job(jid, pid):
     parsed = parse_pc_field(p["pc_field"], p["body"])
     pcs = [x for x in parsed["targets"] + parsed["body_only"] if (world.pc_dir / x).exists()]
     before = snapshot(world, pcs)
+    from runner.inquiry_agent import system_prompt
+    push(jid, {"type": "system", "text": system_prompt()})
     r = run(pid, world, runs_dir=out / "runs", on_event=lambda e: push(jid, e))
     after = snapshot(world, pcs)
     changes = []

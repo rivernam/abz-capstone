@@ -76,6 +76,7 @@ def run(post_id, world=None, client=None, model=None, runs_dir=None, effort="med
     client = client or AnthropicClient()
     system = system_prompt()
     messages = [{"role": "user", "content": first_message(post)}]
+    emit({"type": "user", "text": messages[0]["content"] if isinstance(messages[0]["content"], str) else json.dumps(messages[0]["content"], ensure_ascii=False)})
     rec = {"post_id": post_id, "model": model, "started_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "calls": [], "tool_calls": [], "status": None, "abort_reason": None}
     model_calls = tool_calls = 0
@@ -92,7 +93,17 @@ def run(post_id, world=None, client=None, model=None, runs_dir=None, effort="med
             abort = f"모델 호출 오류: {type(e).__name__}: {e}"
             break
         model_calls += 1
-        emit({"type": "model", "n": model_calls, "stop_reason": _get(resp, "stop_reason")})
+        blocks = []
+        for b in _get(resp, "content", []) or []:
+            t = _get(b, "type")
+            if t == "text":
+                blocks.append({"type": "text", "text": _get(b, "text")})
+            elif t == "thinking" and _get(b, "thinking"):
+                blocks.append({"type": "thinking", "text": _get(b, "thinking")})
+            elif t == "tool_use":
+                blocks.append({"type": "tool_use", "name": _get(b, "name"), "input": _get(b, "input")})
+        emit({"type": "model", "n": model_calls, "stop_reason": _get(resp, "stop_reason"), "blocks": blocks,
+              "usage": _dump(usage) if (usage := _get(resp, "usage")) is not None else None})
         usage = _get(resp, "usage")
         rec["calls"].append({"stop_reason": _get(resp, "stop_reason"), "model": _get(resp, "model"),
                              "usage": _dump(usage) if usage is not None else None,
